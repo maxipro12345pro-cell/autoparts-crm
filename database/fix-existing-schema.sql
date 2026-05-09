@@ -22,6 +22,7 @@ add column if not exists production_year text not null default '';
 
 alter table orders
 add column if not exists car_id uuid references client_cars(id) on delete set null,
+add column if not exists product_name text not null default '',
 add column if not exists article text not null default '',
 add column if not exists brand text not null default '',
 add column if not exists quantity numeric(12, 2) not null default 1,
