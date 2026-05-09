@@ -322,6 +322,7 @@ export default function ClientDetailsPage() {
               <InfoItem label="Город" value={client.city || "—"} />
               <InfoItem label="Дата рождения" value={client.birthDate || "—"} />
               <InfoItem label="Комментарий" value={client.comment || "—"} />
+              <InfoItem label="Карточку добавил" value={client.employeeName || "не указано"} />
               <InfoItem label="Дата создания" value={formatDate(client.createdAt)} />
             </div>
 

@@ -27,6 +27,7 @@ type ClientRow = {
   city: string | null;
   comment: string | null;
   notes: string | null;
+  employee_name: string | null;
   created_at: string;
 };
 
@@ -94,6 +95,7 @@ function mapClient(row: ClientRow): Client {
     city: row.city || "",
     comment: row.comment || "",
     notes: row.notes || "",
+    employeeName: row.employee_name || "",
     createdAt: row.created_at,
   };
 }

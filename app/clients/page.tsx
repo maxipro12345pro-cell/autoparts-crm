@@ -4,13 +4,31 @@ import Link from "next/link";
 import { useState } from "react";
 import CrmShell from "@/components/CrmShell";
 import { useAsyncBrowserValue } from "@/lib/hooks";
-import { type Client } from "@/lib/crm";
-import { listClients } from "@/lib/data";
+import { formatMoney, type Client, type Order } from "@/lib/crm";
+import { listClients, listOrders } from "@/lib/data";
 
 export default function ClientsPage() {
   const clientsState = useAsyncBrowserValue<Client[]>(() => listClients(), []);
+  const ordersState = useAsyncBrowserValue<Order[]>(() => listOrders(), []);
   const clients = clientsState.value;
+  const orders = ordersState.value;
   const [search, setSearch] = useState("");
+
+  const clientStats = orders.reduce(
+    (stats, order) => {
+      const current = stats.get(order.clientId) || { count: 0, total: 0 };
+      stats.set(order.clientId, {
+        count: current.count + 1,
+        total: current.total + order.total,
+      });
+      return stats;
+    },
+    new Map<string, { count: number; total: number }>()
+  );
+
+  function getClientStats(clientId: string) {
+    return clientStats.get(clientId) || { count: 0, total: 0 };
+  }
 
   const filteredClients = clients.filter((client) => {
     const query = search.toLowerCase();
@@ -19,7 +37,8 @@ export default function ClientsPage() {
       client.name.toLowerCase().includes(query) ||
       client.phone.toLowerCase().includes(query) ||
       client.email?.toLowerCase().includes(query) ||
-      client.city?.toLowerCase().includes(query)
+      client.city?.toLowerCase().includes(query) ||
+      client.employeeName?.toLowerCase().includes(query)
     );
   });
 
@@ -81,6 +100,13 @@ export default function ClientsPage() {
                   <p className="mt-1 text-sm text-slate-600">
                     {client.phone}
                     {client.city ? ` · ${client.city}` : ""}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Карточку добавил: {client.employeeName || "не указано"}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Заказов: {getClientStats(client.id).count} · Покупки:{" "}
+                    {formatMoney(getClientStats(client.id).total)}
                   </p>
                   {client.comment && (
                     <p className="mt-1 text-sm text-slate-500">

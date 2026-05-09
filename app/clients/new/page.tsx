@@ -60,12 +60,16 @@ export default function NewClientPage() {
       const clients = await listClients();
       const normalizedPhone = normalizePhone(phone);
 
-      const phoneExists = clients.some(
+      const existingClient = clients.find(
         (client) => normalizePhone(client.phone) === normalizedPhone
       );
 
-      if (phoneExists) {
-        setErrorMessage("Клиент с таким номером телефона уже существует.");
+      if (existingClient) {
+        setErrorMessage(
+          existingClient.employeeName
+            ? `Клиент с таким номером уже есть. Карточку добавил: ${existingClient.employeeName}.`
+            : "Клиент с таким номером уже есть."
+        );
         return;
       }
 
@@ -102,6 +106,7 @@ export default function NewClientPage() {
         city: city.trim(),
         comment: comment.trim(),
         notes: notes.trim(),
+        employeeName: getEmployeeName(),
       });
 
       if (shouldCreateOrder) {

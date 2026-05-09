@@ -11,6 +11,7 @@ type ClientRow = {
   city: string | null;
   comment: string | null;
   notes: string | null;
+  employee_name: string | null;
   created_at: string;
 };
 
@@ -24,6 +25,7 @@ function mapClient(row: ClientRow): Client {
     city: row.city || "",
     comment: row.comment || "",
     notes: row.notes || "",
+    employeeName: row.employee_name || "",
     createdAt: row.created_at,
   };
 }
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
       city: input.city?.trim() || null,
       comment: input.comment?.trim() || null,
       notes: input.notes?.trim() || null,
+      employee_name: input.employeeName?.trim() || null,
       created_at: createdAt,
     };
 
@@ -96,6 +99,23 @@ export async function POST(request: Request) {
         ...clientPayload,
       };
       delete fallbackPayload.normalized_phone;
+
+      result = await db
+        .from("clients")
+        .insert(fallbackPayload)
+        .select("*")
+        .single();
+    }
+
+    if (
+      result.error?.code === "PGRST204" &&
+      result.error.message.includes("employee_name")
+    ) {
+      const fallbackPayload: Omit<typeof clientPayload, "employee_name"> &
+        Partial<Pick<typeof clientPayload, "employee_name">> = {
+        ...clientPayload,
+      };
+      delete fallbackPayload.employee_name;
 
       result = await db
         .from("clients")

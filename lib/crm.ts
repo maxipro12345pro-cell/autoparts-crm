@@ -12,6 +12,7 @@ export type Client = {
   city?: string;
   comment?: string;
   notes?: string;
+  employeeName?: string;
   createdAt: string;
 };
 

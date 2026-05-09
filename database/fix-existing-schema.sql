@@ -13,7 +13,8 @@ on clients(normalized_phone);
 
 alter table clients
 add column if not exists birth_date date,
-add column if not exists notes text;
+add column if not exists notes text,
+add column if not exists employee_name text;
 
 alter table client_cars
 add column if not exists vin_or_plate text not null default '',

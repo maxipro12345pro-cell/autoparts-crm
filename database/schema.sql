@@ -15,6 +15,7 @@ create table if not exists clients (
   city text,
   comment text,
   notes text,
+  employee_name text,
   created_at timestamptz not null default now()
 );
 
