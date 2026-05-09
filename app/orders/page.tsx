@@ -15,6 +15,14 @@ import {
 import { listClients, listOrders } from "@/lib/data";
 
 const statuses: Array<"all" | OrderStatus> = ["all", ...orderStatuses];
+type ExportPeriod = "day" | "week" | "month" | "all";
+
+const exportPeriods: Array<{ label: string; value: ExportPeriod }> = [
+  { label: "День", value: "day" },
+  { label: "Неделя", value: "week" },
+  { label: "Месяц", value: "month" },
+  { label: "Все", value: "all" },
+];
 
 export default function OrdersPage() {
   const clientsState = useAsyncBrowserValue<Client[]>(() => listClients(), []);
@@ -58,6 +66,114 @@ export default function OrdersPage() {
   }, [orders, clientMap, search, statusFilter]);
 
   const totalSales = filteredOrders.reduce((sum, order) => sum + order.total, 0);
+
+  function getOrdersForExport(period: ExportPeriod) {
+    if (period === "all") {
+      return orders;
+    }
+
+    const start = new Date();
+
+    if (period === "day") {
+      start.setHours(0, 0, 0, 0);
+    }
+
+    if (period === "week") {
+      start.setDate(start.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
+    }
+
+    if (period === "month") {
+      start.setMonth(start.getMonth() - 1);
+      start.setHours(0, 0, 0, 0);
+    }
+
+    return orders.filter((order) => new Date(order.createdAt) >= start);
+  }
+
+  function escapeCsv(value: string | number) {
+    return `"${String(value).replace(/"/g, '""')}"`;
+  }
+
+  function buildCsv(period: ExportPeriod) {
+    const exportOrders = getOrdersForExport(period);
+    const employeeStats = exportOrders.reduce(
+      (stats, order) => {
+        const employee = order.employeeName || "Сотрудник";
+        const current = stats.get(employee) || { count: 0, total: 0 };
+
+        stats.set(employee, {
+          count: current.count + 1,
+          total: current.total + order.total,
+        });
+
+        return stats;
+      },
+      new Map<string, { count: number; total: number }>()
+    );
+
+    const rows: string[][] = [
+      ["Сводка по сотрудникам"],
+      ["Сотрудник", "Заказов", "Сумма"],
+      ...Array.from(employeeStats.entries()).map(([employee, stats]) => [
+        employee,
+        String(stats.count),
+        stats.total.toFixed(2),
+      ]),
+      [],
+      ["Продажи"],
+      [
+        "Дата",
+        "Сотрудник",
+        "Клиент",
+        "Телефон",
+        "Товар",
+        "Артикул",
+        "Бренд",
+        "Количество",
+        "Цена / шт.",
+        "Сумма",
+        "Статус",
+        "Комментарий",
+      ],
+      ...exportOrders.map((order) => {
+        const client = clientMap.get(order.clientId);
+
+        return [
+          new Date(order.createdAt).toLocaleString("ru-RU"),
+          order.employeeName,
+          client?.name || "",
+          client?.phone || "",
+          order.productName,
+          order.article,
+          order.brand,
+          String(order.quantity),
+          order.price.toFixed(2),
+          order.total.toFixed(2),
+          order.status,
+          order.comment,
+        ];
+      }),
+    ];
+
+    return `sep=;\n${rows
+      .map((row) => row.map((cell) => escapeCsv(cell)).join(";"))
+      .join("\n")}`;
+  }
+
+  function handleExport(period: ExportPeriod) {
+    const csv = buildCsv(period);
+    const blob = new Blob([`\uFEFF${csv}`], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `sales-${period}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <CrmShell title="Журнал заказов">
@@ -132,6 +248,30 @@ export default function OrdersPage() {
               </option>
             ))}
           </select>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h4 className="font-semibold text-slate-900">Экспорт продаж</h4>
+            <p className="mt-1 text-sm text-slate-500">
+              CSV открывается в Excel и содержит продажи и сводку по сотрудникам.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {exportPeriods.map((period) => (
+              <button
+                key={period.value}
+                type="button"
+                onClick={() => handleExport(period.value)}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {period.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
