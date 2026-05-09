@@ -28,6 +28,10 @@ function mapClient(row: ClientRow): Client {
   };
 }
 
+function normalizeSupabaseUrl(value: string) {
+  return new URL(value).origin;
+}
+
 function getServerAnonClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -36,11 +40,19 @@ function getServerAnonClient() {
     throw new Error("Missing Supabase public environment variables");
   }
 
-  return createClient(supabaseUrl, supabaseAnonKey, {
+  return createClient(normalizeSupabaseUrl(supabaseUrl), supabaseAnonKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
     },
+  });
+}
+
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    route: "/api/clients",
+    writes: "server-anon",
   });
 }
 

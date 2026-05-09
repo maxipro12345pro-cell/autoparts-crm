@@ -3,6 +3,7 @@ alter table client_cars enable row level security;
 alter table orders enable row level security;
 alter table bonus_transactions enable row level security;
 alter table loyalty_settings enable row level security;
+alter table if exists client_bonus_balances enable row level security;
 
 drop policy if exists "prototype clients access" on clients;
 create policy "prototype clients access"
@@ -43,3 +44,16 @@ for all
 to anon
 using (true)
 with check (true);
+
+do $$
+begin
+  if to_regclass('public.client_bonus_balances') is not null then
+    execute 'drop policy if exists "prototype client bonus balances access" on client_bonus_balances';
+    execute 'create policy "prototype client bonus balances access"
+      on client_bonus_balances
+      for all
+      to anon
+      using (true)
+      with check (true)';
+  end if;
+end $$;
