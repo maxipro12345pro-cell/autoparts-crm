@@ -20,6 +20,16 @@ alter table client_cars
 add column if not exists vin_or_plate text not null default '',
 add column if not exists production_year text not null default '';
 
+alter table orders
+add column if not exists car_id uuid references client_cars(id) on delete set null,
+add column if not exists article text not null default '',
+add column if not exists brand text not null default '',
+add column if not exists quantity numeric(12, 2) not null default 1,
+add column if not exists price numeric(12, 2) not null default 1,
+add column if not exists total numeric(12, 2) not null default 0,
+add column if not exists employee_name text not null default 'Сотрудник',
+add column if not exists comment text not null default '';
+
 alter table loyalty_settings
 alter column id type integer using 1,
 alter column id set default 1;
