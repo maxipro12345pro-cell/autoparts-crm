@@ -6,7 +6,6 @@ import {
   getClients,
   getLoyaltySettings,
   getOrders,
-  normalizePhone,
   storageKeys,
   writeStorageValue,
   type BonusTransaction,
@@ -171,17 +170,6 @@ export async function listClients() {
 export async function createClientRecord(input: NewClientInput) {
   const db = getDb();
   const createdAt = new Date().toISOString();
-  const clientPayload = {
-    name: input.name,
-    phone: input.phone,
-    normalized_phone: normalizePhone(input.phone),
-    email: input.email || null,
-    birth_date: input.birthDate || null,
-    city: input.city || null,
-    comment: input.comment || null,
-    notes: input.notes || null,
-    created_at: createdAt,
-  };
 
   if (!db) {
     const clients = getClients();
@@ -195,34 +183,20 @@ export async function createClientRecord(input: NewClientInput) {
     return newClient;
   }
 
-  let result = await db
-    .from("clients")
-    .insert(clientPayload)
-    .select("*")
-    .single();
+  const response = await fetch("/api/clients", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(input),
+  });
+  const payload = await response.json().catch(() => null);
 
-  if (
-    result.error?.code === "PGRST204" &&
-    result.error.message.includes("normalized_phone")
-  ) {
-    const fallbackPayload: Omit<typeof clientPayload, "normalized_phone"> &
-      Partial<Pick<typeof clientPayload, "normalized_phone">> = {
-      ...clientPayload,
-    };
-    delete fallbackPayload.normalized_phone;
-
-    result = await db
-      .from("clients")
-      .insert(fallbackPayload)
-      .select("*")
-      .single();
+  if (!response.ok) {
+    throw new Error(payload?.error || "Не удалось сохранить клиента.");
   }
 
-  const { data, error } = result;
-
-  if (error) throw error;
-
-  return mapClient(data as ClientRow);
+  return payload as Client;
 }
 
 export async function listCars() {
