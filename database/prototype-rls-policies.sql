@@ -48,11 +48,12 @@ with check (true);
 do $$
 begin
   if to_regclass('public.client_bonus_balances') is not null then
+    execute 'grant select, insert, update, delete on table public.client_bonus_balances to anon, authenticated';
     execute 'drop policy if exists "prototype client bonus balances access" on client_bonus_balances';
     execute 'create policy "prototype client bonus balances access"
       on client_bonus_balances
       for all
-      to anon
+      to anon, authenticated
       using (true)
       with check (true)';
   end if;
