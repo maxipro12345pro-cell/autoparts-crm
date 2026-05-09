@@ -1,0 +1,703 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import CrmShell from "@/components/CrmShell";
+import { useAsyncBrowserValue } from "@/lib/hooks";
+import {
+  activeOrderStatuses,
+  defaultLoyaltySettings,
+  formatDate,
+  formatMoney,
+  getEmployeeName,
+  orderStatuses,
+  type BonusTransaction,
+  type Client,
+  type ClientCar,
+  type Order,
+  type OrderStatus,
+} from "@/lib/crm";
+import {
+  createBonusTransactionRecord,
+  createCarRecord,
+  createOrderWithAutoBonus,
+  deleteCarRecord,
+  getCurrentLoyaltySettings,
+  listBonusTransactions,
+  listCars,
+  listClients,
+  listOrders,
+} from "@/lib/data";
+
+export default function ClientDetailsPage() {
+  const params = useParams();
+
+  const clientId = String(params.id);
+
+  const clientsState = useAsyncBrowserValue<Client[]>(() => listClients(), []);
+  const clients = clientsState.value;
+  const client = useMemo(() => {
+    return clients.find((item) => item.id === clientId) || null;
+  }, [clientId, clients]);
+
+  const savedCarsState = useAsyncBrowserValue<ClientCar[]>(
+    async () => (await listCars()).filter((car) => car.clientId === clientId),
+    []
+  );
+  const savedOrdersState = useAsyncBrowserValue<Order[]>(
+    async () =>
+      (await listOrders())
+        .filter((order) => order.clientId === clientId)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
+    []
+  );
+  const savedBonusTransactionsState = useAsyncBrowserValue<BonusTransaction[]>(
+    async () =>
+      (await listBonusTransactions())
+        .filter((transaction) => transaction.clientId === clientId)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ),
+    []
+  );
+  const loyaltySettingsState = useAsyncBrowserValue(
+    () => getCurrentLoyaltySettings(),
+    defaultLoyaltySettings
+  );
+
+  const [carsOverride, setCarsOverride] = useState<ClientCar[] | null>(null);
+  const [ordersOverride, setOrdersOverride] = useState<Order[] | null>(null);
+  const [bonusTransactionsOverride, setBonusTransactionsOverride] = useState<
+    BonusTransaction[] | null
+  >(null);
+
+  const cars = carsOverride || savedCarsState.value;
+  const orders = ordersOverride || savedOrdersState.value;
+  const bonusTransactions =
+    bonusTransactionsOverride || savedBonusTransactionsState.value;
+  const loyaltySettings = loyaltySettingsState.value;
+
+  const [carBrand, setCarBrand] = useState("");
+  const [carModel, setCarModel] = useState("");
+  const [carYear, setCarYear] = useState("");
+  const [carVinOrPlate, setCarVinOrPlate] = useState("");
+  const [carComment, setCarComment] = useState("");
+
+  const [orderProductName, setOrderProductName] = useState("");
+  const [orderArticle, setOrderArticle] = useState("");
+  const [orderBrand, setOrderBrand] = useState("");
+  const [orderQuantity, setOrderQuantity] = useState("1");
+  const [orderPrice, setOrderPrice] = useState("");
+  const [orderStatus, setOrderStatus] = useState<OrderStatus>("оформлен");
+  const [orderCarId, setOrderCarId] = useState("");
+  const [orderComment, setOrderComment] = useState("");
+
+  const [bonusAmount, setBonusAmount] = useState("");
+  const [bonusComment, setBonusComment] = useState("");
+  const [bonusAction, setBonusAction] = useState<"add" | "remove">("add");
+
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const bonusBalance = useMemo(() => {
+    return bonusTransactions.reduce((sum, transaction) => {
+      return sum + transaction.amount;
+    }, 0);
+  }, [bonusTransactions]);
+
+  const totalPurchases = useMemo(() => {
+    return orders.reduce((sum, order) => sum + order.total, 0);
+  }, [orders]);
+
+  const activeOrders = useMemo(() => {
+    return orders.filter((order) => activeOrderStatuses.includes(order.status));
+  }, [orders]);
+
+  async function handleAddCar(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+
+    if (!carBrand.trim() && !carModel.trim() && !carVinOrPlate.trim()) {
+      setErrorMessage("Введите хотя бы марку, модель или VIN/госномер авто.");
+      return;
+    }
+
+    const newCar = await createCarRecord({
+      clientId,
+      brand: carBrand.trim(),
+      model: carModel.trim(),
+      productionYear: carYear.trim(),
+      vinOrPlate: carVinOrPlate.trim(),
+      comment: carComment.trim(),
+    });
+
+    setCarsOverride([newCar, ...cars]);
+
+    setCarBrand("");
+    setCarModel("");
+    setCarYear("");
+    setCarVinOrPlate("");
+    setCarComment("");
+  }
+
+  async function handleDeleteCar(carId: string) {
+    const nextCars = cars.filter((car) => car.id !== carId);
+    setCarsOverride(nextCars);
+    await deleteCarRecord(carId);
+  }
+
+  async function handleAddOrder(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+
+    if (!orderProductName.trim()) {
+      setErrorMessage("Введите название товара или запчасти.");
+      return;
+    }
+
+    const quantity = Number(orderQuantity);
+    const price = Number(orderPrice);
+
+    if (!quantity || quantity <= 0) {
+      setErrorMessage("Введите корректное количество.");
+      return;
+    }
+
+    if (!price || price <= 0) {
+      setErrorMessage("Введите корректную цену.");
+      return;
+    }
+
+    const total = quantity * price;
+    const employeeName = getEmployeeName();
+
+    const newOrder = await createOrderWithAutoBonus({
+      clientId,
+      carId: orderCarId || undefined,
+      productName: orderProductName.trim(),
+      article: orderArticle.trim(),
+      brand: orderBrand.trim(),
+      quantity,
+      price,
+      total,
+      status: orderStatus,
+      employeeName,
+      comment: orderComment.trim(),
+    });
+
+    setOrdersOverride([newOrder, ...orders]);
+    setBonusTransactionsOverride(
+      (await listBonusTransactions()).filter(
+        (transaction) => transaction.clientId === clientId
+      )
+    );
+
+    setOrderProductName("");
+    setOrderArticle("");
+    setOrderBrand("");
+    setOrderQuantity("1");
+    setOrderPrice("");
+    setOrderStatus("оформлен");
+    setOrderCarId("");
+    setOrderComment("");
+  }
+
+  async function handleAddBonusTransaction(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+
+    const amount = Number(bonusAmount);
+
+    if (!amount || amount <= 0) {
+      setErrorMessage("Введите корректную сумму бонусов.");
+      return;
+    }
+
+    if (bonusAction === "remove" && amount > bonusBalance) {
+      setErrorMessage("Нельзя списать больше бонусов, чем есть на балансе.");
+      return;
+    }
+
+    const employeeName = getEmployeeName();
+
+    const newTransaction = await createBonusTransactionRecord({
+      clientId,
+      type: bonusAction === "add" ? "manual_accrual" : "manual_writeoff",
+      amount: bonusAction === "add" ? amount : -amount,
+      comment: bonusComment.trim(),
+      employeeName,
+    });
+
+    setBonusTransactionsOverride([newTransaction, ...bonusTransactions]);
+
+    setBonusAmount("");
+    setBonusComment("");
+    setBonusAction("add");
+  }
+
+  if (!client) {
+    return (
+      <CrmShell title="Клиент не найден">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-slate-600">Клиент не найден или был удалён.</p>
+
+          <Link
+            href="/clients"
+            className="mt-5 inline-flex rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
+          >
+            Вернуться к клиентам
+          </Link>
+        </div>
+      </CrmShell>
+    );
+  }
+
+  return (
+    <CrmShell title={client.name}>
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <Link href="/clients" className="text-sm text-slate-500 hover:underline">
+            ← Назад к клиентам
+          </Link>
+
+          <h3 className="mt-2 text-2xl font-bold text-slate-900">
+            {client.name}
+          </h3>
+
+          <p className="mt-1 text-slate-600">{client.phone}</p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-right shadow-sm">
+          <p className="text-sm text-slate-500">Бонусный баланс</p>
+          <p className="mt-1 text-3xl font-bold text-slate-900">
+            {formatMoney(bonusBalance)}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-5 md:grid-cols-4">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Всего покупок</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">
+            {formatMoney(totalPurchases)}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Заказов</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">
+            {orders.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Активные заказы</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">
+            {activeOrders.length}
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <p className="text-sm text-slate-500">Автомобили</p>
+          <p className="mt-2 text-2xl font-bold text-slate-900">
+            {cars.length}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h4 className="text-lg font-bold text-slate-900">
+              Информация о клиенте
+            </h4>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <InfoItem label="Телефон" value={client.phone} />
+              <InfoItem label="Email" value={client.email || "—"} />
+              <InfoItem label="Город" value={client.city || "—"} />
+              <InfoItem label="Дата рождения" value={client.birthDate || "—"} />
+              <InfoItem label="Комментарий" value={client.comment || "—"} />
+              <InfoItem label="Дата создания" value={formatDate(client.createdAt)} />
+            </div>
+
+            {client.notes && (
+              <div className="mt-5 rounded-xl bg-slate-50 p-4">
+                <p className="text-sm font-medium text-slate-500">
+                  Дополнительные заметки
+                </p>
+                <p className="mt-1 text-slate-800">{client.notes}</p>
+              </div>
+            )}
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h4 className="text-lg font-bold text-slate-900">
+              Автомобили клиента
+            </h4>
+
+            <form onSubmit={handleAddCar} className="mt-5 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  value={carBrand}
+                  onChange={(event) => setCarBrand(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Марка"
+                />
+
+                <input
+                  value={carModel}
+                  onChange={(event) => setCarModel(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Модель"
+                />
+
+                <input
+                  value={carYear}
+                  onChange={(event) => setCarYear(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Год выпуска"
+                />
+
+                <input
+                  value={carVinOrPlate}
+                  onChange={(event) => setCarVinOrPlate(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="VIN или госномер"
+                />
+              </div>
+
+              <input
+                value={carComment}
+                onChange={(event) => setCarComment(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                placeholder="Комментарий к автомобилю"
+              />
+
+              <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
+                Добавить автомобиль
+              </button>
+            </form>
+
+            <div className="mt-6 space-y-3">
+              {cars.length === 0 ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
+                  Автомобили пока не добавлены.
+                </p>
+              ) : (
+                cars.map((car) => (
+                  <div
+                    key={car.id}
+                    className="flex items-start justify-between rounded-xl border border-slate-200 p-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-900">
+                        {[car.brand, car.model, car.productionYear]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </p>
+
+                      <p className="mt-1 text-sm text-slate-600">
+                        {car.vinOrPlate || "VIN/госномер не указан"}
+                      </p>
+
+                      {car.comment && (
+                        <p className="mt-1 text-sm text-slate-500">
+                          {car.comment}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleDeleteCar(car.id)}
+                      className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      Удалить
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h4 className="text-lg font-bold text-slate-900">
+              Добавить заказ / покупку
+            </h4>
+
+            <form onSubmit={handleAddOrder} className="mt-5 space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <input
+                  value={orderProductName}
+                  onChange={(event) => setOrderProductName(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Название товара / запчасти *"
+                />
+
+                <input
+                  value={orderArticle}
+                  onChange={(event) => setOrderArticle(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Артикул"
+                />
+
+                <input
+                  value={orderBrand}
+                  onChange={(event) => setOrderBrand(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Бренд"
+                />
+
+                <select
+                  value={orderStatus}
+                  onChange={(event) =>
+                    setOrderStatus(event.target.value as OrderStatus)
+                  }
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+                >
+                  {orderStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+
+                <input
+                  type="number"
+                  min="1"
+                  value={orderQuantity}
+                  onChange={(event) => setOrderQuantity(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Количество"
+                />
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={orderPrice}
+                  onChange={(event) => setOrderPrice(event.target.value)}
+                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Цена"
+                />
+
+                <select
+                  value={orderCarId}
+                  onChange={(event) => setOrderCarId(event.target.value)}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900 md:col-span-2"
+                >
+                  <option value="">Без привязки к автомобилю</option>
+
+                  {cars.map((car) => (
+                    <option key={car.id} value={car.id}>
+                      {[car.brand, car.model, car.productionYear, car.vinOrPlate]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <textarea
+                value={orderComment}
+                onChange={(event) => setOrderComment(event.target.value)}
+                className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                placeholder="Комментарий к заказу"
+              />
+
+              <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
+                Сохранить заказ
+              </button>
+            </form>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h4 className="text-lg font-bold text-slate-900">
+              История заказов
+            </h4>
+
+            <div className="mt-5 space-y-3">
+              {orders.length === 0 ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
+                  Заказов пока нет.
+                </p>
+              ) : (
+                orders.map((order) => (
+                  <div
+                    key={order.id}
+                    className="rounded-xl border border-slate-200 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {order.productName}
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-600">
+                          Артикул: {order.article || "—"} · Бренд:{" "}
+                          {order.brand || "—"}
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-600">
+                          Кол-во: {order.quantity} · Цена:{" "}
+                          {formatMoney(order.price)}
+                        </p>
+
+                        {order.comment && (
+                          <p className="mt-2 text-sm text-slate-500">
+                            {order.comment}
+                          </p>
+                        )}
+
+                        <p className="mt-2 text-xs text-slate-400">
+                          {formatDate(order.createdAt)} · {order.employeeName}
+                        </p>
+                      </div>
+
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-slate-900">
+                          {formatMoney(order.total)}
+                        </p>
+
+                        <p className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+                          {order.status}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h4 className="text-lg font-bold text-slate-900">
+              Бонусная система
+            </h4>
+
+            <div className="mt-4 rounded-2xl bg-slate-900 p-5 text-white">
+              <p className="text-sm text-slate-300">Текущий баланс</p>
+              <p className="mt-2 text-3xl font-bold">
+                {formatMoney(bonusBalance)}
+              </p>
+              <p className="mt-2 text-sm text-slate-300">
+                Автоматическое начисление: {loyaltySettings.bonusPercent}% от
+                суммы покупки от {formatMoney(loyaltySettings.minPurchaseAmount)}.
+              </p>
+            </div>
+
+            <form onSubmit={handleAddBonusTransaction} className="mt-5 space-y-4">
+              <select
+                value={bonusAction}
+                onChange={(event) =>
+                  setBonusAction(event.target.value as "add" | "remove")
+                }
+                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+              >
+                <option value="add">Начислить бонусы</option>
+                <option value="remove">Списать бонусы</option>
+              </select>
+
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={bonusAmount}
+                onChange={(event) => setBonusAmount(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                placeholder="Сумма бонусов"
+              />
+
+              <textarea
+                value={bonusComment}
+                onChange={(event) => setBonusComment(event.target.value)}
+                className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                placeholder="Комментарий"
+              />
+
+              <button className="w-full rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
+                Сохранить операцию
+              </button>
+            </form>
+          </section>
+
+          {errorMessage && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h4 className="text-lg font-bold text-slate-900">
+              История бонусов
+            </h4>
+
+            <div className="mt-5 space-y-3">
+              {bonusTransactions.length === 0 ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
+                  Бонусных операций пока нет.
+                </p>
+              ) : (
+                bonusTransactions.map((transaction) => (
+                  <div
+                    key={transaction.id}
+                    className="rounded-xl border border-slate-200 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {transaction.type === "auto_accrual"
+                            ? "Автоматическое начисление"
+                            : transaction.type === "manual_accrual"
+                              ? "Ручное начисление"
+                              : "Списание бонусов"}
+                        </p>
+
+                        {transaction.comment && (
+                          <p className="mt-1 text-sm text-slate-600">
+                            {transaction.comment}
+                          </p>
+                        )}
+
+                        <p className="mt-2 text-xs text-slate-400">
+                          {formatDate(transaction.createdAt)} ·{" "}
+                          {transaction.employeeName}
+                        </p>
+                      </div>
+
+                      <p
+                        className={
+                          transaction.amount >= 0
+                            ? "font-bold text-emerald-600"
+                            : "font-bold text-red-600"
+                        }
+                      >
+                        {transaction.amount >= 0 ? "+" : ""}
+                        {formatMoney(transaction.amount)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        </div>
+      </div>
+    </CrmShell>
+  );
+}
+
+function InfoItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-4">
+      <p className="text-sm font-medium text-slate-500">{label}</p>
+      <p className="mt-1 font-medium text-slate-900">{value}</p>
+    </div>
+  );
+}
