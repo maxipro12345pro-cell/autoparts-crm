@@ -102,6 +102,7 @@ export default function ClientDetailsPage() {
   const [bonusAction, setBonusAction] = useState<"add" | "remove">("add");
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [errorArea, setErrorArea] = useState<"car" | "order" | "bonus" | "">("");
 
   const bonusBalance = useMemo(() => {
     return bonusTransactions.reduce((sum, transaction) => {
@@ -120,8 +121,10 @@ export default function ClientDetailsPage() {
   async function handleAddCar(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    setErrorArea("");
 
     if (!carBrand.trim() && !carModel.trim() && !carVinOrPlate.trim()) {
+      setErrorArea("car");
       setErrorMessage("Введите хотя бы марку, модель или VIN/госномер авто.");
       return;
     }
@@ -153,8 +156,10 @@ export default function ClientDetailsPage() {
   async function handleAddOrder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    setErrorArea("");
 
     if (!orderProductName.trim()) {
+      setErrorArea("order");
       setErrorMessage("Введите название товара или запчасти.");
       return;
     }
@@ -163,11 +168,13 @@ export default function ClientDetailsPage() {
     const price = Number(orderPrice);
 
     if (!quantity || quantity <= 0) {
+      setErrorArea("order");
       setErrorMessage("Введите корректное количество.");
       return;
     }
 
     if (!price || price <= 0) {
+      setErrorArea("order");
       setErrorMessage("Введите корректную цену.");
       return;
     }
@@ -209,15 +216,18 @@ export default function ClientDetailsPage() {
   async function handleAddBonusTransaction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
+    setErrorArea("");
 
     const amount = Number(bonusAmount);
 
     if (!amount || amount <= 0) {
+      setErrorArea("bonus");
       setErrorMessage("Введите корректную сумму бонусов.");
       return;
     }
 
     if (bonusAction === "remove" && amount > bonusBalance) {
+      setErrorArea("bonus");
       setErrorMessage("Нельзя списать больше бонусов, чем есть на балансе.");
       return;
     }
@@ -379,6 +389,10 @@ export default function ClientDetailsPage() {
                 placeholder="Комментарий к автомобилю"
               />
 
+              {errorArea === "car" && errorMessage && (
+                <FormError message={errorMessage} />
+              )}
+
               <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
                 Добавить автомобиль
               </button>
@@ -510,6 +524,10 @@ export default function ClientDetailsPage() {
                 placeholder="Комментарий к заказу"
               />
 
+              {errorArea === "order" && errorMessage && (
+                <FormError message={errorMessage} />
+              )}
+
               <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
                 Сохранить заказ
               </button>
@@ -622,17 +640,15 @@ export default function ClientDetailsPage() {
                 placeholder="Комментарий"
               />
 
+              {errorArea === "bonus" && errorMessage && (
+                <FormError message={errorMessage} />
+              )}
+
               <button className="w-full rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
                 Сохранить операцию
               </button>
             </form>
           </section>
-
-          {errorMessage && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {errorMessage}
-            </div>
-          )}
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
@@ -699,6 +715,14 @@ function InfoItem({ label, value }: { label: string; value: string }) {
     <div className="rounded-xl bg-slate-50 p-4">
       <p className="text-sm font-medium text-slate-500">{label}</p>
       <p className="mt-1 font-medium text-slate-900">{value}</p>
+    </div>
+  );
+}
+
+function FormError({ message }: { message: string }) {
+  return (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {message}
     </div>
   );
 }
