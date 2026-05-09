@@ -22,7 +22,7 @@ const employees: Employee[] = [
   },
   {
     id: "nikolai-railian",
-    fullName: "Николай Райлян",
+    fullName: "Николай Шепель",
     pin: "3333",
   },
 ];
@@ -138,7 +138,7 @@ export default function LoginPage() {
           <p className="font-medium text-slate-900 mb-2">Тестовые PIN-коды:</p>
           <p>Елена Райлян — 1111</p>
           <p>Игорь Райлян — 2222</p>
-          <p>Николай Райлян — 3333</p>
+          <p>Николай Шепель — 3333</p>
         </div>
       </div>
     </main>
