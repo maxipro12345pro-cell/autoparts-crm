@@ -249,6 +249,16 @@ export default function ClientDetailsPage() {
     setBonusAction("add");
   }
 
+  if (!clientsState.initialized) {
+    return (
+      <CrmShell title="Загрузка клиента">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="text-slate-600">Загрузка данных клиента...</p>
+        </div>
+      </CrmShell>
+    );
+  }
+
   if (!client) {
     return (
       <CrmShell title="Клиент не найден">

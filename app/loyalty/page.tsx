@@ -20,6 +20,7 @@ export default function LoyaltyPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [settings, setSettings] = useState<LoyaltySettings | null>(null);
   const [isSaved, setIsSaved] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const savedSettings = savedSettingsState.value;
   const currentSettings = settings || savedSettings;
@@ -28,15 +29,26 @@ export default function LoyaltyPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const saved = await updateLoyaltySettings(currentFormValues);
-    setSettings(saved);
-    setFormValues(saved);
-    setIsEditing(false);
-    setIsSaved(true);
+    try {
+      const saved = await updateLoyaltySettings(currentFormValues);
+      setSettings(saved);
+      setFormValues(saved);
+      setIsEditing(false);
+      setIsSaved(true);
+      setErrorMessage("");
+    } catch (error) {
+      setIsSaved(false);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Не удалось сохранить настройки."
+      );
+    }
   }
 
   function updateField(field: keyof LoyaltySettings, value: string) {
     setIsSaved(false);
+    setErrorMessage("");
     setIsEditing(true);
     setFormValues((currentValues) => ({
       ...(isEditing ? currentValues : savedSettings),
@@ -135,6 +147,12 @@ export default function LoyaltyPage() {
               </p>
             )}
           </div>
+
+          {errorMessage && (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMessage}
+            </div>
+          )}
         </form>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

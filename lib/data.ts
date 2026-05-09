@@ -146,9 +146,14 @@ function mapBonusTransaction(row: BonusTransactionRow): BonusTransaction {
 
 function mapLoyaltySettings(row: LoyaltySettingsRow): LoyaltySettings {
   return {
-    bonusPercent: Number(row.bonus_percent),
-    minPurchaseAmount: Number(row.min_purchase_amount),
-    maxRedeemPercent: Number(row.max_redeem_percent),
+    bonusPercent:
+      Number(row.bonus_percent) || defaultLoyaltySettings.bonusPercent,
+    minPurchaseAmount:
+      Number(row.min_purchase_amount) ||
+      defaultLoyaltySettings.minPurchaseAmount,
+    maxRedeemPercent:
+      Number(row.max_redeem_percent) ||
+      defaultLoyaltySettings.maxRedeemPercent,
   };
 }
 
