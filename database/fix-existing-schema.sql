@@ -31,6 +31,13 @@ add column if not exists total numeric(12, 2) not null default 0,
 add column if not exists employee_name text not null default 'Сотрудник',
 add column if not exists comment text not null default '';
 
+alter table bonus_transactions
+add column if not exists order_id uuid references orders(id) on delete set null,
+add column if not exists type bonus_transaction_type not null default 'manual_accrual',
+add column if not exists amount numeric(12, 2) not null default 0,
+add column if not exists comment text not null default '',
+add column if not exists employee_name text not null default 'Сотрудник';
+
 alter table loyalty_settings
 alter column id type integer using 1,
 alter column id set default 1;

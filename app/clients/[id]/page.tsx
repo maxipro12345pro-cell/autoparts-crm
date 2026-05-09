@@ -182,26 +182,37 @@ export default function ClientDetailsPage() {
     const total = quantity * price;
     const employeeName = getEmployeeName();
 
-    const newOrder = await createOrderWithAutoBonus({
-      clientId,
-      carId: orderCarId || undefined,
-      productName: orderProductName.trim(),
-      article: orderArticle.trim(),
-      brand: orderBrand.trim(),
-      quantity,
-      price,
-      total,
-      status: orderStatus,
-      employeeName,
-      comment: orderComment.trim(),
-    });
+    let newOrder: Order;
+
+    try {
+      newOrder = await createOrderWithAutoBonus({
+        clientId,
+        carId: orderCarId || undefined,
+        productName: orderProductName.trim(),
+        article: orderArticle.trim(),
+        brand: orderBrand.trim(),
+        quantity,
+        price,
+        total,
+        status: orderStatus,
+        employeeName,
+        comment: orderComment.trim(),
+      });
+
+      setBonusTransactionsOverride(
+        (await listBonusTransactions()).filter(
+          (transaction) => transaction.clientId === clientId
+        )
+      );
+    } catch (error) {
+      setErrorArea("order");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось сохранить заказ."
+      );
+      return;
+    }
 
     setOrdersOverride([newOrder, ...orders]);
-    setBonusTransactionsOverride(
-      (await listBonusTransactions()).filter(
-        (transaction) => transaction.clientId === clientId
-      )
-    );
 
     setOrderProductName("");
     setOrderArticle("");
