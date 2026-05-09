@@ -57,8 +57,13 @@ export default function NewClientPage() {
         comment: comment.trim(),
         notes: notes.trim(),
       });
-    } catch {
-      setErrorMessage("Не удалось сохранить клиента. Попробуйте ещё раз.");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Не удалось сохранить клиента. Попробуйте ещё раз.";
+
+      setErrorMessage(message);
       return;
     }
 
