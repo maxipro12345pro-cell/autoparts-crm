@@ -61,7 +61,7 @@ export default function OrdersPage() {
 
   return (
     <CrmShell title="Журнал заказов">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-slate-900">Все заказы</h3>
           <p className="mt-1 text-slate-600">
@@ -71,7 +71,7 @@ export default function OrdersPage() {
 
         <Link
           href="/clients"
-          className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
+          className="inline-flex justify-center rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
         >
           Найти клиента
         </Link>
@@ -147,8 +147,8 @@ export default function OrdersPage() {
 
               return (
                 <div key={order.id} className="p-5 hover:bg-slate-50">
-                  <div className="flex items-start justify-between gap-5">
-                    <div>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
+                    <div className="min-w-0">
                       <p className="font-semibold text-slate-900">
                         {order.productName}
                       </p>
@@ -189,7 +189,7 @@ export default function OrdersPage() {
                       </p>
                     </div>
 
-                    <div className="min-w-36 text-right">
+                    <div className="shrink-0 sm:min-w-36 sm:text-right">
                       <p className="text-lg font-bold text-slate-900">
                         {formatMoney(order.total)}
                       </p>

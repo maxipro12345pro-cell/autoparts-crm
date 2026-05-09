@@ -25,7 +25,7 @@ export default function ClientsPage() {
 
   return (
     <CrmShell title="Клиенты">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-slate-900">
             База клиентов
@@ -37,7 +37,7 @@ export default function ClientsPage() {
 
         <Link
           href="/clients/new"
-          className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
+          className="inline-flex justify-center rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
         >
           Добавить клиента
         </Link>
@@ -72,9 +72,9 @@ export default function ClientsPage() {
             {filteredClients.map((client) => (
               <div
                 key={client.id}
-                className="flex items-center justify-between p-5 hover:bg-slate-50"
+                className="flex flex-col gap-4 p-5 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="font-semibold text-slate-900">
                     {client.name}
                   </p>
@@ -90,11 +90,12 @@ export default function ClientsPage() {
                 </div>
 
                 <Link
-  href={`/clients/${client.id}`}
-  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white"
->
-  Открыть
-</Link>              </div>
+                  href={`/clients/${client.id}`}
+                  className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+                >
+                  Открыть
+                </Link>
+              </div>
             ))}
           </div>
         )}

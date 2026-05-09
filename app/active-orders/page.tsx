@@ -73,7 +73,7 @@ export default function ActiveOrdersPage() {
 
   return (
     <CrmShell title="Активные заказы">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-bold text-slate-900">
             Заказы в работе
@@ -85,7 +85,7 @@ export default function ActiveOrdersPage() {
 
         <Link
           href="/orders"
-          className="rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-white"
+          className="inline-flex justify-center rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-white"
         >
           Все заказы
         </Link>
@@ -139,7 +139,7 @@ export default function ActiveOrdersPage() {
               return (
                 <div key={order.id} className="p-5 hover:bg-slate-50">
                   <div className="grid gap-5 lg:grid-cols-[1fr_220px_180px]">
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-slate-900">
                         {order.productName}
                       </p>

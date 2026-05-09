@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-slate-100 flex items-center justify-center px-6">
-      <div className="w-full max-w-xl rounded-3xl bg-white p-10 shadow-sm border border-slate-200">
+      <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-sm border border-slate-200 sm:p-10">
         <div className="mb-8">
           <p className="text-sm font-medium text-blue-600 mb-2">
             Internal CRM

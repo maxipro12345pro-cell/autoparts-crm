@@ -62,7 +62,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-slate-100 flex items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl bg-white p-8 shadow-sm border border-slate-200">
+      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-sm border border-slate-200 sm:p-8">
         <div className="mb-8">
           <p className="text-sm font-medium text-blue-600 mb-2">
             Внутренняя CRM

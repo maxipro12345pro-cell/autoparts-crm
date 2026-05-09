@@ -69,7 +69,7 @@ export default function CrmShell({ children, title }: CrmShellProps) {
   return (
     <main className="min-h-screen bg-slate-100">
       <div className="flex min-h-screen flex-col lg:flex-row">
-        <aside className="w-full border-b border-slate-200 bg-white px-4 py-4 lg:w-72 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
+        <aside className="sticky top-0 z-20 w-full border-b border-slate-200 bg-white px-4 py-4 lg:static lg:w-72 lg:border-b-0 lg:border-r lg:px-5 lg:py-6">
           <div className="mb-4 lg:mb-8">
             <p className="text-sm font-medium text-blue-600">Autoparts CRM</p>
             <h1 className="mt-1 text-xl font-bold text-slate-900">
@@ -77,7 +77,7 @@ export default function CrmShell({ children, title }: CrmShellProps) {
             </h1>
           </div>
 
-          <nav className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-2 lg:overflow-visible lg:pb-0">
+          <nav className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:block lg:space-y-2 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
             {menuItems.map((item) => {
               const isActive = pathname === item.href;
 
@@ -103,7 +103,9 @@ export default function CrmShell({ children, title }: CrmShellProps) {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-slate-500">CRM магазина</p>
-                <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
+                <h2 className="break-words text-2xl font-bold text-slate-900">
+                  {title}
+                </h2>
               </div>
 
               <div className="flex items-center justify-between gap-4 sm:justify-end">

@@ -258,8 +258,8 @@ export default function ClientDetailsPage() {
 
   return (
     <CrmShell title={client.name}>
-      <div className="mb-6 flex items-center justify-between">
-        <div>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <Link href="/clients" className="text-sm text-slate-500 hover:underline">
             ← Назад к клиентам
           </Link>
@@ -271,7 +271,7 @@ export default function ClientDetailsPage() {
           <p className="mt-1 text-slate-600">{client.phone}</p>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white px-6 py-4 text-right shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6 sm:text-right">
           <p className="text-sm text-slate-500">Бонусный баланс</p>
           <p className="mt-1 text-3xl font-bold text-slate-900">
             {formatMoney(bonusBalance)}
@@ -311,7 +311,7 @@ export default function ClientDetailsPage() {
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Информация о клиенте
             </h4>
@@ -335,7 +335,7 @@ export default function ClientDetailsPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Автомобили клиента
             </h4>
@@ -392,9 +392,9 @@ export default function ClientDetailsPage() {
                 cars.map((car) => (
                   <div
                     key={car.id}
-                    className="flex items-start justify-between rounded-xl border border-slate-200 p-4"
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4 sm:flex-row sm:items-start sm:justify-between"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold text-slate-900">
                         {[car.brand, car.model, car.productionYear]
                           .filter(Boolean)
@@ -424,7 +424,7 @@ export default function ClientDetailsPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Добавить заказ / покупку
             </h4>
@@ -515,7 +515,7 @@ export default function ClientDetailsPage() {
             </form>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               История заказов
             </h4>
@@ -531,8 +531,8 @@ export default function ClientDetailsPage() {
                     key={order.id}
                     className="rounded-xl border border-slate-200 p-4"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <p className="font-semibold text-slate-900">
                           {order.productName}
                         </p>
@@ -558,7 +558,7 @@ export default function ClientDetailsPage() {
                         </p>
                       </div>
 
-                      <div className="text-right">
+                      <div className="shrink-0 sm:text-right">
                         <p className="text-lg font-bold text-slate-900">
                           {formatMoney(order.total)}
                         </p>
@@ -576,7 +576,7 @@ export default function ClientDetailsPage() {
         </div>
 
         <div className="space-y-6">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Бонусная система
             </h4>
@@ -633,7 +633,7 @@ export default function ClientDetailsPage() {
             </div>
           )}
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               История бонусов
             </h4>
@@ -649,8 +649,8 @@ export default function ClientDetailsPage() {
                     key={transaction.id}
                     className="rounded-xl border border-slate-200 p-4"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
                         <p className="font-medium text-slate-900">
                           {transaction.type === "auto_accrual"
                             ? "Автоматическое начисление"

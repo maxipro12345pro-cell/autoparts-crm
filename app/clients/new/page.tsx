@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CrmShell from "@/components/CrmShell";
-import {
-  normalizePhone,
-} from "@/lib/crm";
+import { normalizePhone } from "@/lib/crm";
 import { createClientRecord, listClients } from "@/lib/data";
 
 export default function NewClientPage() {
@@ -72,7 +70,7 @@ export default function NewClientPage() {
 
   return (
     <CrmShell title="Новый клиент">
-      <div className="max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="mb-6">
           <h3 className="text-xl font-bold text-slate-900">
             Создание карточки клиента
@@ -184,7 +182,7 @@ export default function NewClientPage() {
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
             <button
               type="submit"
               className="rounded-xl bg-slate-900 px-6 py-3 font-medium text-white hover:bg-slate-800"

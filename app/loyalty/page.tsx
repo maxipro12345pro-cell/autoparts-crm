@@ -121,7 +121,7 @@ export default function LoyaltyPage() {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-4">
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
             <button
               type="submit"
               className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"

@@ -103,7 +103,7 @@ export default function DashboardPage() {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-bold text-slate-900">
               Последние заказы
             </h2>
@@ -124,8 +124,8 @@ export default function DashboardPage() {
                   key={order.id}
                   className="rounded-xl border border-slate-200 p-4"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <div className="min-w-0">
                       <p className="font-medium text-slate-900">
                         {order.productName}
                       </p>
@@ -134,7 +134,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
 
-                    <p className="font-bold text-slate-900">
+                    <p className="shrink-0 font-bold text-slate-900">
                       {formatMoney(order.total)}
                     </p>
                   </div>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
         </section>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-xl font-bold text-slate-900">
               Новые клиенты
             </h2>
