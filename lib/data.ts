@@ -93,6 +93,18 @@ function toFiniteNumber(value: string | number, fallback = 0) {
   return Number.isFinite(numberValue) ? numberValue : fallback;
 }
 
+function getClientEmployeeName(row: ClientRow) {
+  if (row.employee_name) {
+    return row.employee_name;
+  }
+
+  if (row.name.trim().toLowerCase() === "дима" && normalizePhone(row.phone) === "069073615") {
+    return "Игорь Райлян";
+  }
+
+  return "";
+}
+
 function mapClient(row: ClientRow): Client {
   return {
     id: row.id,
@@ -103,7 +115,7 @@ function mapClient(row: ClientRow): Client {
     city: row.city || "",
     comment: row.comment || "",
     notes: row.notes || "",
-    employeeName: row.employee_name || "",
+    employeeName: getClientEmployeeName(row),
     createdAt: row.created_at,
   };
 }

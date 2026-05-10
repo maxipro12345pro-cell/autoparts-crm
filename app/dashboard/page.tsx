@@ -184,6 +184,9 @@ export default function DashboardPage() {
                 >
                   <p className="font-medium text-slate-900">{client.name}</p>
                   <p className="mt-1 text-sm text-slate-600">{client.phone}</p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Карточку добавил: {client.employeeName || "не записан в базе"}
+                  </p>
                 </Link>
               ))}
             </div>
