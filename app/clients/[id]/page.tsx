@@ -58,27 +58,23 @@ export default function ClientDetailsPage() {
   const clientId = client?.id || clientRouteId;
 
   const savedCarsState = useAsyncBrowserValue<ClientCar[]>(
-    async () => (await listCars()).filter((car) => car.clientId === clientId),
+    async () => listCars(clientId),
     []
   );
   const savedOrdersState = useAsyncBrowserValue<Order[]>(
     async () =>
-      (await listOrders())
-        .filter((order) => order.clientId === clientId)
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        ),
+      (await listOrders(clientId)).sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
     []
   );
   const savedBonusTransactionsState = useAsyncBrowserValue<BonusTransaction[]>(
     async () =>
-      (await listBonusTransactions())
-        .filter((transaction) => transaction.clientId === clientId)
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        ),
+      (await listBonusTransactions(clientId)).sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
     []
   );
   const loyaltySettingsState = useAsyncBrowserValue(
@@ -228,9 +224,7 @@ export default function ClientDetailsPage() {
       });
 
       setBonusTransactionsOverride(
-        (await listBonusTransactions()).filter(
-          (transaction) => transaction.clientId === clientId
-        )
+        await listBonusTransactions(clientId)
       );
     } catch (error) {
       setErrorArea("order");

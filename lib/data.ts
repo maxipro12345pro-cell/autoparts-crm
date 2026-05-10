@@ -83,8 +83,42 @@ export type NewCarInput = Omit<ClientCar, "id" | "createdAt">;
 export type NewOrderInput = Omit<Order, "id" | "createdAt">;
 export type NewBonusTransactionInput = Omit<BonusTransaction, "id" | "createdAt">;
 
+const cacheTtl = 15_000;
+const queryCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    promise: Promise<unknown>;
+  }
+>();
+
 function getDb() {
   return getSupabaseClient();
+}
+
+function clearQueryCache() {
+  queryCache.clear();
+}
+
+function readCached<T>(key: string, getValue: () => Promise<T>) {
+  const cached = queryCache.get(key);
+  const now = Date.now();
+
+  if (cached && cached.expiresAt > now) {
+    return cached.promise as Promise<T>;
+  }
+
+  const promise = getValue().catch((error) => {
+    queryCache.delete(key);
+    throw error;
+  });
+
+  queryCache.set(key, {
+    expiresAt: now + cacheTtl,
+    promise,
+  });
+
+  return promise;
 }
 
 function toFiniteNumber(value: string | number, fallback = 0) {
@@ -176,14 +210,16 @@ export async function listClients() {
     return getClients();
   }
 
-  const { data, error } = await db
-    .from("clients")
-    .select("*")
-    .order("created_at", { ascending: false });
+  return readCached("clients", async () => {
+    const { data, error } = await db
+      .from("clients")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) throw error;
+    if (error) throw error;
 
-  return (data as ClientRow[]).map(mapClient);
+    return (data as ClientRow[]).map(mapClient);
+  });
 }
 
 export async function createClientRecord(input: NewClientInput) {
@@ -199,6 +235,7 @@ export async function createClientRecord(input: NewClientInput) {
     };
 
     writeStorageValue(storageKeys.clients, [newClient, ...clients]);
+    clearQueryCache();
     return newClient;
   }
 
@@ -215,6 +252,7 @@ export async function createClientRecord(input: NewClientInput) {
     throw new Error(payload?.error || "Не удалось сохранить клиента.");
   }
 
+  clearQueryCache();
   return payload as Client;
 }
 
@@ -230,6 +268,7 @@ export async function updateClientRecord(input: UpdateClientInput) {
     const updatedClient = nextClients.find((client) => client.id === input.id);
     if (!updatedClient) throw new Error("Клиент не найден.");
 
+    clearQueryCache();
     return updatedClient;
   }
 
@@ -252,6 +291,7 @@ export async function updateClientRecord(input: UpdateClientInput) {
 
   if (error) throw error;
 
+  clearQueryCache();
   return mapClient(data as ClientRow);
 }
 
@@ -263,63 +303,97 @@ export async function deleteClientRecord(clientId: string) {
       storageKeys.clients,
       getClients().filter((client) => client.id !== clientId)
     );
+    clearQueryCache();
     return;
   }
 
   const { error } = await db.from("clients").delete().eq("id", clientId);
 
   if (error) throw error;
+  clearQueryCache();
 }
 
-export async function listCars() {
+export async function listCars(clientId?: string) {
   const db = getDb();
 
   if (!db) {
-    return getClientCars();
+    return clientId
+      ? getClientCars().filter((car) => car.clientId === clientId)
+      : getClientCars();
   }
 
-  const { data, error } = await db
-    .from("client_cars")
-    .select("*")
-    .order("created_at", { ascending: false });
+  return readCached(`cars:${clientId || "all"}`, async () => {
+    let query = db
+      .from("client_cars")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) throw error;
+    if (clientId) {
+      query = query.eq("client_id", clientId);
+    }
 
-  return (data as CarRow[]).map(mapCar);
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return (data as CarRow[]).map(mapCar);
+  });
 }
 
-export async function listOrders() {
+export async function listOrders(clientId?: string) {
   const db = getDb();
 
   if (!db) {
-    return getOrders();
+    return clientId
+      ? getOrders().filter((order) => order.clientId === clientId)
+      : getOrders();
   }
 
-  const { data, error } = await db
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
+  return readCached(`orders:${clientId || "all"}`, async () => {
+    let query = db
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) throw error;
+    if (clientId) {
+      query = query.eq("client_id", clientId);
+    }
 
-  return (data as OrderRow[]).map(mapOrder);
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return (data as OrderRow[]).map(mapOrder);
+  });
 }
 
-export async function listBonusTransactions() {
+export async function listBonusTransactions(clientId?: string) {
   const db = getDb();
 
   if (!db) {
-    return getBonusTransactions();
+    return clientId
+      ? getBonusTransactions().filter(
+          (transaction) => transaction.clientId === clientId
+        )
+      : getBonusTransactions();
   }
 
-  const { data, error } = await db
-    .from("bonus_transactions")
-    .select("*")
-    .order("created_at", { ascending: false });
+  return readCached(`bonus-transactions:${clientId || "all"}`, async () => {
+    let query = db
+      .from("bonus_transactions")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) throw error;
+    if (clientId) {
+      query = query.eq("client_id", clientId);
+    }
 
-  return (data as BonusTransactionRow[]).map(mapBonusTransaction);
+    const { data, error } = await query;
+
+    if (error) throw error;
+
+    return (data as BonusTransactionRow[]).map(mapBonusTransaction);
+  });
 }
 
 export async function createCarRecord(input: NewCarInput) {
@@ -335,6 +409,7 @@ export async function createCarRecord(input: NewCarInput) {
     };
 
     writeStorageValue(storageKeys.clientCars, [newCar, ...cars]);
+    clearQueryCache();
     return newCar;
   }
 
@@ -354,6 +429,7 @@ export async function createCarRecord(input: NewCarInput) {
 
   if (error) throw error;
 
+  clearQueryCache();
   return mapCar(data as CarRow);
 }
 
@@ -365,12 +441,14 @@ export async function deleteCarRecord(carId: string) {
       storageKeys.clientCars,
       getClientCars().filter((car) => car.id !== carId)
     );
+    clearQueryCache();
     return;
   }
 
   const { error } = await db.from("client_cars").delete().eq("id", carId);
 
   if (error) throw error;
+  clearQueryCache();
 }
 
 export async function createBonusTransactionRecord(
@@ -391,6 +469,7 @@ export async function createBonusTransactionRecord(
       newTransaction,
       ...transactions,
     ]);
+    clearQueryCache();
     return newTransaction;
   }
 
@@ -410,6 +489,7 @@ export async function createBonusTransactionRecord(
 
   if (error) throw error;
 
+  clearQueryCache();
   return mapBonusTransaction(data as BonusTransactionRow);
 }
 
@@ -420,15 +500,19 @@ export async function getCurrentLoyaltySettings() {
     return getLoyaltySettings();
   }
 
-  const { data, error } = await db
-    .from("loyalty_settings")
-    .select("*")
-    .eq("id", 1)
-    .maybeSingle();
+  return readCached("loyalty-settings", async () => {
+    const { data, error } = await db
+      .from("loyalty_settings")
+      .select("*")
+      .eq("id", 1)
+      .maybeSingle();
 
-  if (error) throw error;
+    if (error) throw error;
 
-  return data ? mapLoyaltySettings(data as LoyaltySettingsRow) : defaultLoyaltySettings;
+    return data
+      ? mapLoyaltySettings(data as LoyaltySettingsRow)
+      : defaultLoyaltySettings;
+  });
 }
 
 export async function updateLoyaltySettings(settings: LoyaltySettings) {
@@ -436,6 +520,7 @@ export async function updateLoyaltySettings(settings: LoyaltySettings) {
 
   if (!db) {
     writeStorageValue(storageKeys.loyaltySettings, settings);
+    clearQueryCache();
     return settings;
   }
 
@@ -453,6 +538,7 @@ export async function updateLoyaltySettings(settings: LoyaltySettings) {
 
   if (error) throw error;
 
+  clearQueryCache();
   return mapLoyaltySettings(data as LoyaltySettingsRow);
 }
 
@@ -483,6 +569,7 @@ export async function createOrderWithAutoBonus(input: NewOrderInput) {
       });
     }
 
+    clearQueryCache();
     return newOrder;
   }
 
@@ -520,6 +607,7 @@ export async function createOrderWithAutoBonus(input: NewOrderInput) {
     });
   }
 
+  clearQueryCache();
   return newOrder;
 }
 
@@ -534,6 +622,7 @@ export async function updateOrderStatusRecord(
       item.id === order.id ? { ...item, status: nextStatus } : item
     );
     writeStorageValue(storageKeys.orders, nextOrders);
+    clearQueryCache();
   } else {
     const { error } = await db
       .from("orders")
@@ -541,6 +630,7 @@ export async function updateOrderStatusRecord(
       .eq("id", order.id);
 
     if (error) throw error;
+    clearQueryCache();
   }
 
   if (nextStatus !== "отменён") {
