@@ -107,29 +107,25 @@ export async function POST(request: Request) {
         .single();
     }
 
-    if (
-      result.error?.code === "PGRST204" &&
-      result.error.message.includes("employee_name")
-    ) {
-      const fallbackPayload: Omit<typeof clientPayload, "employee_name"> &
-        Partial<Pick<typeof clientPayload, "employee_name">> = {
-        ...clientPayload,
-      };
-      delete fallbackPayload.employee_name;
-
-      result = await db
-        .from("clients")
-        .insert(fallbackPayload)
-        .select("*")
-        .single();
-    }
-
     if (result.error) {
       console.error("Create client failed", {
         code: result.error.code,
         message: result.error.message,
         details: result.error.details,
       });
+
+      if (
+        result.error.code === "PGRST204" &&
+        result.error.message.includes("employee_name")
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "В таблице clients нет колонки employee_name или Supabase ещё не обновил схему. Добавьте колонку employee_name text и обновите schema cache.",
+          },
+          { status: 400 }
+        );
+      }
 
       return NextResponse.json(
         { error: result.error.message },

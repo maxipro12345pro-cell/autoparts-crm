@@ -115,11 +115,9 @@ export default function ClientsPage() {
                     {client.phone}
                     {client.city ? ` · ${client.city}` : ""}
                   </p>
-                  {client.employeeName && (
-                    <p className="mt-1 text-sm text-slate-500">
-                      Карточку добавил: {client.employeeName}
-                    </p>
-                  )}
+                  <p className="mt-1 text-sm text-slate-500">
+                    Карточку добавил: {client.employeeName || "не записан в базе"}
+                  </p>
                   <p className="mt-1 text-sm text-slate-500">
                     Заказов: {getClientStats(client.id).count} · Покупки:{" "}
                     {formatMoney(getClientStats(client.id).total)}

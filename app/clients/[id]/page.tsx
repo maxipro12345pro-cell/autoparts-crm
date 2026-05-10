@@ -552,9 +552,7 @@ export default function ClientDetailsPage() {
               <InfoItem label="Город" value={currentClient.city || "—"} />
               <InfoItem label="Дата рождения" value={currentClient.birthDate || "—"} />
               <InfoItem label="Комментарий" value={currentClient.comment || "—"} />
-              {currentClient.employeeName && (
-                <InfoItem label="Карточку добавил" value={currentClient.employeeName} />
-              )}
+              <InfoItem label="Карточку добавил" value={currentClient.employeeName || "не записан в базе"} />
               <InfoItem label="Дата создания" value={formatDate(currentClient.createdAt)} />
             </div>
 
