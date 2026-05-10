@@ -552,7 +552,7 @@ export default function ClientDetailsPage() {
               <InfoItem label="Город" value={currentClient.city || "—"} />
               <InfoItem label="Дата рождения" value={currentClient.birthDate || "—"} />
               <InfoItem label="Комментарий" value={currentClient.comment || "—"} />
-              <InfoItem label="Карточку добавил" value={currentClient.employeeName || "не указано"} />
+              <InfoItem label="Карточку добавил" value={currentClient.employeeName || "Не записан"} />
               <InfoItem label="Дата создания" value={formatDate(currentClient.createdAt)} />
             </div>
 
@@ -944,10 +944,6 @@ export default function ClientDetailsPage() {
 }
 
 function InfoItem({ label, value }: { label: string; value: string }) {
-  if (value.trim().toLowerCase() === "не указано") {
-    return null;
-  }
-
   return (
     <div className="rounded-xl bg-slate-50 p-4">
       <p className="text-sm font-medium text-slate-500">{label}</p>
