@@ -100,7 +100,9 @@ export const defaultLoyaltySettings: LoyaltySettings = {
 };
 
 export function formatMoney(value: number) {
-  return `${value.toFixed(2)} лей`;
+  const safeValue = Number.isFinite(value) ? value : 0;
+
+  return `${safeValue.toFixed(2)} лей`;
 }
 
 export function formatDate(value: string) {
@@ -180,15 +182,25 @@ export function getLoyaltySettings() {
     storageKeys.loyaltySettings,
     defaultLoyaltySettings
   );
+  const bonusPercent = Number(settings.bonusPercent);
+  const minPurchaseAmount = Number(settings.minPurchaseAmount);
+  const maxRedeemPercent = Number(settings.maxRedeemPercent);
 
   return {
-    ...defaultLoyaltySettings,
-    ...settings,
+    bonusPercent: Number.isFinite(bonusPercent)
+      ? bonusPercent
+      : defaultLoyaltySettings.bonusPercent,
+    minPurchaseAmount: Number.isFinite(minPurchaseAmount)
+      ? minPurchaseAmount
+      : defaultLoyaltySettings.minPurchaseAmount,
+    maxRedeemPercent: Number.isFinite(maxRedeemPercent)
+      ? maxRedeemPercent
+      : defaultLoyaltySettings.maxRedeemPercent,
   };
 }
 
 export function calculateAutoBonus(total: number, settings = getLoyaltySettings()) {
-  if (total < settings.minPurchaseAmount) {
+  if (!Number.isFinite(total) || total < settings.minPurchaseAmount) {
     return 0;
   }
 

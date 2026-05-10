@@ -87,6 +87,12 @@ function getDb() {
   return getSupabaseClient();
 }
 
+function toFiniteNumber(value: string | number, fallback = 0) {
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
 function mapClient(row: ClientRow): Client {
   return {
     id: row.id,
@@ -123,9 +129,9 @@ function mapOrder(row: OrderRow): Order {
     productName: row.product_name,
     article: row.article,
     brand: row.brand,
-    quantity: Number(row.quantity),
-    price: Number(row.price),
-    total: Number(row.total),
+    quantity: toFiniteNumber(row.quantity, 1),
+    price: toFiniteNumber(row.price),
+    total: toFiniteNumber(row.total),
     status: row.status,
     employeeName: row.employee_name,
     comment: row.comment,
@@ -139,7 +145,7 @@ function mapBonusTransaction(row: BonusTransactionRow): BonusTransaction {
     clientId: row.client_id,
     orderId: row.order_id || undefined,
     type: row.type,
-    amount: Number(row.amount),
+    amount: toFiniteNumber(row.amount),
     comment: row.comment,
     employeeName: row.employee_name,
     createdAt: row.created_at,
@@ -148,14 +154,18 @@ function mapBonusTransaction(row: BonusTransactionRow): BonusTransaction {
 
 function mapLoyaltySettings(row: LoyaltySettingsRow): LoyaltySettings {
   return {
-    bonusPercent:
-      Number(row.bonus_percent) || defaultLoyaltySettings.bonusPercent,
-    minPurchaseAmount:
-      Number(row.min_purchase_amount) ||
-      defaultLoyaltySettings.minPurchaseAmount,
-    maxRedeemPercent:
-      Number(row.max_redeem_percent) ||
-      defaultLoyaltySettings.maxRedeemPercent,
+    bonusPercent: toFiniteNumber(
+      row.bonus_percent,
+      defaultLoyaltySettings.bonusPercent
+    ),
+    minPurchaseAmount: toFiniteNumber(
+      row.min_purchase_amount,
+      defaultLoyaltySettings.minPurchaseAmount
+    ),
+    maxRedeemPercent: toFiniteNumber(
+      row.max_redeem_percent,
+      defaultLoyaltySettings.maxRedeemPercent
+    ),
   };
 }
 
