@@ -25,6 +25,7 @@ export default function LoyaltyPage() {
   const savedSettings = savedSettingsState.value;
   const currentSettings = settings || savedSettings;
   const currentFormValues = isEditing ? formValues : savedSettings;
+  const isLoading = !savedSettingsState.initialized;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,6 +55,19 @@ export default function LoyaltyPage() {
       ...(isEditing ? currentValues : savedSettings),
       [field]: Number(value),
     }));
+  }
+
+  if (isLoading) {
+    return (
+      <CrmShell title="Бонусная программа">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-medium text-slate-900">Загрузка настроек...</p>
+          <p className="mt-2 text-sm text-slate-500">
+            CRM получает правила бонусной программы.
+          </p>
+        </div>
+      </CrmShell>
+    );
   }
 
   return (

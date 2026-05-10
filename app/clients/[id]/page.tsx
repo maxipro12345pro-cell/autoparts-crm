@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import CrmShell from "@/components/CrmShell";
 import { useAsyncBrowserValue } from "@/lib/hooks";
 import {
@@ -11,6 +11,7 @@ import {
   formatDate,
   formatMoney,
   getEmployeeName,
+  normalizePhone,
   orderStatuses,
   type BonusTransaction,
   type Client,
@@ -23,23 +24,38 @@ import {
   createCarRecord,
   createOrderWithAutoBonus,
   deleteCarRecord,
+  deleteClientRecord,
   getCurrentLoyaltySettings,
   listBonusTransactions,
   listCars,
   listClients,
   listOrders,
+  updateClientRecord,
 } from "@/lib/data";
 
 export default function ClientDetailsPage() {
   const params = useParams();
+  const router = useRouter();
 
-  const clientId = String(params.id);
+  const clientRouteId = decodeURIComponent(String(params.id));
 
   const clientsState = useAsyncBrowserValue<Client[]>(() => listClients(), []);
   const clients = clientsState.value;
-  const client = useMemo(() => {
-    return clients.find((item) => item.id === clientId) || null;
-  }, [clientId, clients]);
+  const savedClient = useMemo(() => {
+    const normalizedRouteId = normalizePhone(clientRouteId);
+
+    return (
+      clients.find(
+        (item) =>
+          item.id === clientRouteId ||
+          normalizePhone(item.phone) === normalizedRouteId
+      ) || null
+    );
+  }, [clientRouteId, clients]);
+  const [clientOverride, setClientOverride] = useState<Client | null>(null);
+  const client = clientOverride || savedClient;
+  const currentClient = client;
+  const clientId = client?.id || clientRouteId;
 
   const savedCarsState = useAsyncBrowserValue<ClientCar[]>(
     async () => (await listCars()).filter((car) => car.clientId === clientId),
@@ -81,6 +97,10 @@ export default function ClientDetailsPage() {
   const bonusTransactions =
     bonusTransactionsOverride || savedBonusTransactionsState.value;
   const loyaltySettings = loyaltySettingsState.value;
+  const isCarsLoading = !savedCarsState.initialized;
+  const isOrdersLoading = !savedOrdersState.initialized;
+  const isBonusLoading = !savedBonusTransactionsState.initialized;
+  const isLoyaltyLoading = !loyaltySettingsState.initialized;
 
   const [carBrand, setCarBrand] = useState("");
   const [carModel, setCarModel] = useState("");
@@ -103,6 +123,14 @@ export default function ClientDetailsPage() {
 
   const [errorMessage, setErrorMessage] = useState("");
   const [errorArea, setErrorArea] = useState<"car" | "order" | "bonus" | "">("");
+  const [isEditingClient, setIsEditingClient] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editBirthDate, setEditBirthDate] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editComment, setEditComment] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   const bonusBalance = useMemo(() => {
     return bonusTransactions.reduce((sum, transaction) => {
@@ -260,6 +288,82 @@ export default function ClientDetailsPage() {
     setBonusAction("add");
   }
 
+  function handleStartEditClient() {
+    if (!currentClient) return;
+
+    setEditName(currentClient.name);
+    setEditPhone(currentClient.phone);
+    setEditEmail(currentClient.email || "");
+    setEditBirthDate(currentClient.birthDate || "");
+    setEditCity(currentClient.city || "");
+    setEditComment(currentClient.comment || "");
+    setEditNotes(currentClient.notes || "");
+    setErrorMessage("");
+    setErrorArea("");
+    setIsEditingClient(true);
+  }
+
+  async function handleSaveClient(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!currentClient) return;
+
+    if (!editName.trim()) {
+      setErrorArea("");
+      setErrorMessage("Введите имя клиента.");
+      return;
+    }
+
+    if (!editPhone.trim()) {
+      setErrorArea("");
+      setErrorMessage("Введите номер телефона.");
+      return;
+    }
+
+    try {
+      const updatedClient = await updateClientRecord({
+        id: currentClient.id,
+        name: editName.trim(),
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+        birthDate: editBirthDate,
+        city: editCity.trim(),
+        comment: editComment.trim(),
+        notes: editNotes.trim(),
+        employeeName: currentClient.employeeName,
+      });
+
+      setClientOverride(updatedClient);
+      setIsEditingClient(false);
+      setErrorMessage("");
+    } catch (error) {
+      setErrorArea("");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось сохранить клиента."
+      );
+    }
+  }
+
+  async function handleDeleteClient() {
+    if (!currentClient) return;
+
+    const confirmed = window.confirm(
+      "Удалить карточку клиента? Это действие нельзя отменить."
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteClientRecord(currentClient.id);
+      router.push("/clients");
+    } catch (error) {
+      setErrorArea("");
+      setErrorMessage(
+        error instanceof Error ? error.message : "Не удалось удалить клиента."
+      );
+    }
+  }
+
   if (!clientsState.initialized) {
     return (
       <CrmShell title="Загрузка клиента">
@@ -270,7 +374,7 @@ export default function ClientDetailsPage() {
     );
   }
 
-  if (!client) {
+  if (!currentClient) {
     return (
       <CrmShell title="Клиент не найден">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
@@ -288,7 +392,7 @@ export default function ClientDetailsPage() {
   }
 
   return (
-    <CrmShell title={client.name}>
+    <CrmShell title={currentClient.name}>
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
           <Link href="/clients" className="text-sm text-slate-500 hover:underline">
@@ -296,10 +400,10 @@ export default function ClientDetailsPage() {
           </Link>
 
           <h3 className="mt-2 text-2xl font-bold text-slate-900">
-            {client.name}
+            {currentClient.name}
           </h3>
 
-          <p className="mt-1 text-slate-600">{client.phone}</p>
+          <p className="mt-1 text-slate-600">{currentClient.phone}</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6 sm:text-right">
@@ -347,22 +451,117 @@ export default function ClientDetailsPage() {
               Информация о клиенте
             </h4>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <InfoItem label="Телефон" value={client.phone} />
-              <InfoItem label="Email" value={client.email || "—"} />
-              <InfoItem label="Город" value={client.city || "—"} />
-              <InfoItem label="Дата рождения" value={client.birthDate || "—"} />
-              <InfoItem label="Комментарий" value={client.comment || "—"} />
-              <InfoItem label="Карточку добавил" value={client.employeeName || "не указано"} />
-              <InfoItem label="Дата создания" value={formatDate(client.createdAt)} />
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleStartEditClient}
+                className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Редактировать
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeleteClient}
+                className="rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+              >
+                Удалить
+              </button>
             </div>
 
-            {client.notes && (
+            {isEditingClient && (
+              <form onSubmit={handleSaveClient} className="mt-5 space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <input
+                    value={editName}
+                    onChange={(event) => setEditName(event.target.value)}
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Имя клиента *"
+                  />
+
+                  <input
+                    value={editPhone}
+                    onChange={(event) => setEditPhone(event.target.value)}
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Телефон *"
+                  />
+
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(event) => setEditEmail(event.target.value)}
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Email"
+                  />
+
+                  <input
+                    type="date"
+                    value={editBirthDate}
+                    onChange={(event) => setEditBirthDate(event.target.value)}
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  />
+
+                  <input
+                    value={editCity}
+                    onChange={(event) => setEditCity(event.target.value)}
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Город"
+                  />
+
+                  <input
+                    value={editComment}
+                    onChange={(event) => setEditComment(event.target.value)}
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Комментарий"
+                  />
+                </div>
+
+                <textarea
+                  value={editNotes}
+                  onChange={(event) => setEditNotes(event.target.value)}
+                  className="min-h-24 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                  placeholder="Дополнительные заметки"
+                />
+
+                {errorArea === "" && errorMessage && (
+                  <FormError message={errorMessage} />
+                )}
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button className="rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800">
+                    Сохранить
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingClient(false);
+                      setErrorMessage("");
+                    }}
+                    className="rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <InfoItem label="Телефон" value={currentClient.phone} />
+              <InfoItem label="Email" value={currentClient.email || "—"} />
+              <InfoItem label="Город" value={currentClient.city || "—"} />
+              <InfoItem label="Дата рождения" value={currentClient.birthDate || "—"} />
+              <InfoItem label="Комментарий" value={currentClient.comment || "—"} />
+              <InfoItem label="Карточку добавил" value={currentClient.employeeName || "не указано"} />
+              <InfoItem label="Дата создания" value={formatDate(currentClient.createdAt)} />
+            </div>
+
+            {currentClient.notes && (
               <div className="mt-5 rounded-xl bg-slate-50 p-4">
                 <p className="text-sm font-medium text-slate-500">
                   Дополнительные заметки
                 </p>
-                <p className="mt-1 text-slate-800">{client.notes}</p>
+                <p className="mt-1 text-slate-800">{currentClient.notes}</p>
               </div>
             )}
           </section>
@@ -420,7 +619,11 @@ export default function ClientDetailsPage() {
             </form>
 
             <div className="mt-6 space-y-3">
-              {cars.length === 0 ? (
+              {isCarsLoading ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
+                  Загрузка автомобилей...
+                </p>
+              ) : cars.length === 0 ? (
                 <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
                   Автомобили пока не добавлены.
                 </p>
@@ -561,7 +764,11 @@ export default function ClientDetailsPage() {
             </h4>
 
             <div className="mt-5 space-y-3">
-              {orders.length === 0 ? (
+              {isOrdersLoading ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
+                  Загрузка заказов...
+                </p>
+              ) : orders.length === 0 ? (
                 <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
                   Заказов пока нет.
                 </p>
@@ -627,8 +834,9 @@ export default function ClientDetailsPage() {
                 {formatMoney(bonusBalance)}
               </p>
               <p className="mt-2 text-sm text-slate-300">
-                Автоматическое начисление: {loyaltySettings.bonusPercent}% от
-                суммы покупки от {formatMoney(loyaltySettings.minPurchaseAmount)}.
+                {isLoyaltyLoading
+                  ? "Загрузка правил начисления..."
+                  : `Автоматическое начисление: ${loyaltySettings.bonusPercent}% от суммы покупки от ${formatMoney(loyaltySettings.minPurchaseAmount)}.`}
               </p>
             </div>
 
@@ -677,7 +885,11 @@ export default function ClientDetailsPage() {
             </h4>
 
             <div className="mt-5 space-y-3">
-              {bonusTransactions.length === 0 ? (
+              {isBonusLoading ? (
+                <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
+                  Загрузка бонусных операций...
+                </p>
+              ) : bonusTransactions.length === 0 ? (
                 <p className="rounded-xl bg-slate-50 p-4 text-slate-600">
                   Бонусных операций пока нет.
                 </p>
@@ -732,6 +944,10 @@ export default function ClientDetailsPage() {
 }
 
 function InfoItem({ label, value }: { label: string; value: string }) {
+  if (value.trim().toLowerCase() === "не указано") {
+    return null;
+  }
+
   return (
     <div className="rounded-xl bg-slate-50 p-4">
       <p className="text-sm font-medium text-slate-500">{label}</p>

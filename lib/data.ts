@@ -6,6 +6,7 @@ import {
   getClients,
   getLoyaltySettings,
   getOrders,
+  normalizePhone,
   storageKeys,
   writeStorageValue,
   type BonusTransaction,
@@ -77,6 +78,7 @@ type LoyaltySettingsRow = {
 };
 
 export type NewClientInput = Omit<Client, "id" | "createdAt">;
+export type UpdateClientInput = Omit<Client, "createdAt">;
 export type NewCarInput = Omit<ClientCar, "id" | "createdAt">;
 export type NewOrderInput = Omit<Order, "id" | "createdAt">;
 export type NewBonusTransactionInput = Omit<BonusTransaction, "id" | "createdAt">;
@@ -204,6 +206,59 @@ export async function createClientRecord(input: NewClientInput) {
   }
 
   return payload as Client;
+}
+
+export async function updateClientRecord(input: UpdateClientInput) {
+  const db = getDb();
+
+  if (!db) {
+    const nextClients = getClients().map((client) =>
+      client.id === input.id ? { ...client, ...input } : client
+    );
+    writeStorageValue(storageKeys.clients, nextClients);
+
+    const updatedClient = nextClients.find((client) => client.id === input.id);
+    if (!updatedClient) throw new Error("Клиент не найден.");
+
+    return updatedClient;
+  }
+
+  const { data, error } = await db
+    .from("clients")
+    .update({
+      name: input.name.trim(),
+      phone: input.phone.trim(),
+      normalized_phone: normalizePhone(input.phone),
+      email: input.email?.trim() || null,
+      birth_date: input.birthDate || null,
+      city: input.city?.trim() || null,
+      comment: input.comment?.trim() || null,
+      notes: input.notes?.trim() || null,
+      employee_name: input.employeeName?.trim() || null,
+    })
+    .eq("id", input.id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  return mapClient(data as ClientRow);
+}
+
+export async function deleteClientRecord(clientId: string) {
+  const db = getDb();
+
+  if (!db) {
+    writeStorageValue(
+      storageKeys.clients,
+      getClients().filter((client) => client.id !== clientId)
+    );
+    return;
+  }
+
+  const { error } = await db.from("clients").delete().eq("id", clientId);
+
+  if (error) throw error;
 }
 
 export async function listCars() {

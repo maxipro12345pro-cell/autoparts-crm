@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import CrmShell from "@/components/CrmShell";
 import { useAsyncBrowserValue } from "@/lib/hooks";
-import { formatMoney, type Client, type Order } from "@/lib/crm";
+import { formatMoney, normalizePhone, type Client, type Order } from "@/lib/crm";
 import { listClients, listOrders } from "@/lib/data";
 
 export default function ClientsPage() {
@@ -13,6 +13,7 @@ export default function ClientsPage() {
   const clients = clientsState.value;
   const orders = ordersState.value;
   const [search, setSearch] = useState("");
+  const isLoading = !clientsState.initialized || !ordersState.initialized;
 
   const clientStats = orders.reduce(
     (stats, order) => {
@@ -41,6 +42,19 @@ export default function ClientsPage() {
       client.employeeName?.toLowerCase().includes(query)
     );
   });
+
+  if (isLoading) {
+    return (
+      <CrmShell title="Клиенты">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-medium text-slate-900">Загрузка клиентов...</p>
+          <p className="mt-2 text-sm text-slate-500">
+            CRM получает данные из базы.
+          </p>
+        </div>
+      </CrmShell>
+    );
+  }
 
   return (
     <CrmShell title="Клиенты">
@@ -101,9 +115,11 @@ export default function ClientsPage() {
                     {client.phone}
                     {client.city ? ` · ${client.city}` : ""}
                   </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Карточку добавил: {client.employeeName || "не указано"}
-                  </p>
+                  {client.employeeName && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      Карточку добавил: {client.employeeName}
+                    </p>
+                  )}
                   <p className="mt-1 text-sm text-slate-500">
                     Заказов: {getClientStats(client.id).count} · Покупки:{" "}
                     {formatMoney(getClientStats(client.id).total)}
@@ -116,7 +132,7 @@ export default function ClientsPage() {
                 </div>
 
                 <Link
-                  href={`/clients/${client.id}`}
+                  href={`/clients/${encodeURIComponent(normalizePhone(client.phone))}`}
                   className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white"
                 >
                   Открыть

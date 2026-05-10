@@ -7,6 +7,7 @@ import { useAsyncBrowserValue } from "@/lib/hooks";
 import {
   formatDate,
   formatMoney,
+  normalizePhone,
   orderStatuses,
   type Client,
   type Order,
@@ -38,6 +39,7 @@ export default function OrdersPage() {
   const orders = ordersState.value;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
+  const isLoading = !clientsState.initialized || !ordersState.initialized;
 
   const clientMap = useMemo(() => {
     return new Map(clients.map((client) => [client.id, client]));
@@ -175,6 +177,19 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   }
 
+  if (isLoading) {
+    return (
+      <CrmShell title="Журнал заказов">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-medium text-slate-900">Загрузка заказов...</p>
+          <p className="mt-2 text-sm text-slate-500">
+            CRM получает продажи и клиентов из базы.
+          </p>
+        </div>
+      </CrmShell>
+    );
+  }
+
   return (
     <CrmShell title="Журнал заказов">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -302,7 +317,7 @@ export default function OrdersPage() {
                         Клиент:{" "}
                         {client ? (
                           <Link
-                            href={`/clients/${client.id}`}
+                            href={`/clients/${encodeURIComponent(normalizePhone(client.phone))}`}
                             className="font-medium text-slate-900 hover:underline"
                           >
                             {client.name}

@@ -7,6 +7,7 @@ import { useAsyncBrowserValue } from "@/lib/hooks";
 import {
   activeOrderStatuses,
   formatMoney,
+  normalizePhone,
   type Client,
   type Order,
 } from "@/lib/crm";
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const ordersState = useAsyncBrowserValue<Order[]>(() => listOrders(), []);
   const clients = clientsState.value;
   const orders = ordersState.value;
+  const isLoading = !clientsState.initialized || !ordersState.initialized;
 
   const activeOrders = useMemo(() => {
     return orders.filter((order) => activeOrderStatuses.includes(order.status));
@@ -54,6 +56,19 @@ export default function DashboardPage() {
       )
       .slice(0, 5);
   }, [clients]);
+
+  if (isLoading) {
+    return (
+      <CrmShell title="Панель управления">
+        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+          <p className="font-medium text-slate-900">Загрузка панели...</p>
+          <p className="mt-2 text-sm text-slate-500">
+            CRM считает клиентов, заказы и продажи.
+          </p>
+        </div>
+      </CrmShell>
+    );
+  }
 
   return (
     <CrmShell title="Панель управления">
@@ -164,7 +179,7 @@ export default function DashboardPage() {
               {latestClients.map((client) => (
                 <Link
                   key={client.id}
-                  href={`/clients/${client.id}`}
+                  href={`/clients/${encodeURIComponent(normalizePhone(client.phone))}`}
                   className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50"
                 >
                   <p className="font-medium text-slate-900">{client.name}</p>

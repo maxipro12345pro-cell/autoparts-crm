@@ -13,17 +13,17 @@ const employees: Employee[] = [
   {
     id: "elena-railian",
     fullName: "Елена Райлян",
-    pin: "1111",
+    pin: "4826",
   },
   {
     id: "igor-railian",
     fullName: "Игорь Райлян",
-    pin: "2222",
+    pin: "7394",
   },
   {
     id: "nikolai-railian",
     fullName: "Николай Шепель",
-    pin: "3333",
+    pin: "6158",
   },
 ];
 
@@ -133,13 +133,6 @@ export default function LoginPage() {
             Войти
           </button>
         </form>
-
-        <div className="mt-6 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-          <p className="font-medium text-slate-900 mb-2">Тестовые PIN-коды:</p>
-          <p>Елена Райлян — 1111</p>
-          <p>Игорь Райлян — 2222</p>
-          <p>Николай Шепель — 3333</p>
-        </div>
       </div>
     </main>
   );
