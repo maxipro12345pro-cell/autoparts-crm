@@ -73,12 +73,10 @@ export default function ClientDetailsPage() {
   );
   const savedBonusTransactionsState = useAsyncBrowserValue<BonusTransaction[]>(
     async () =>
-      (await listBonusTransactions())
-        .filter((transaction) => transaction.clientId === clientId)
-        .sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        ),
+      (await listBonusTransactions(clientId)).sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      ),
     []
   );
   const loyaltySettingsState = useAsyncBrowserValue(
@@ -228,9 +226,7 @@ export default function ClientDetailsPage() {
       });
 
       setBonusTransactionsOverride(
-        (await listBonusTransactions()).filter(
-          (transaction) => transaction.clientId === clientId
-        )
+        await listBonusTransactions(clientId)
       );
     } catch (error) {
       setErrorArea("order");

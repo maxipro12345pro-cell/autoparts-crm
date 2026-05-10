@@ -305,17 +305,27 @@ export async function listOrders() {
   return (data as OrderRow[]).map(mapOrder);
 }
 
-export async function listBonusTransactions() {
+export async function listBonusTransactions(clientId?: string) {
   const db = getDb();
 
   if (!db) {
-    return getBonusTransactions();
+    return clientId
+      ? getBonusTransactions().filter(
+          (transaction) => transaction.clientId === clientId
+        )
+      : getBonusTransactions();
   }
 
-  const { data, error } = await db
+  let query = db
     .from("bonus_transactions")
     .select("*")
     .order("created_at", { ascending: false });
+
+  if (clientId) {
+    query = query.eq("client_id", clientId);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
