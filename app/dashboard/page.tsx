@@ -24,6 +24,10 @@ export default function DashboardPage() {
     return orders.filter((order) => activeOrderStatuses.includes(order.status));
   }, [orders]);
 
+  const clientMap = useMemo(() => {
+    return new Map(clients.map((client) => [client.id, client]));
+  }, [clients]);
+
   const totalSales = useMemo(() => {
     return orders
       .filter((order) => order.status !== "отменён")
@@ -147,6 +151,12 @@ export default function DashboardPage() {
                       <p className="mt-1 text-sm text-slate-600">
                         {order.article || "Без артикула"} · {order.status}
                       </p>
+                      {clientMap.get(order.clientId) && (
+                        <p className="mt-1 text-sm text-slate-500">
+                          Клиент: {clientMap.get(order.clientId)?.name} ·{" "}
+                          {clientMap.get(order.clientId)?.phone}
+                        </p>
+                      )}
                     </div>
 
                     <p className="shrink-0 font-bold text-slate-900">

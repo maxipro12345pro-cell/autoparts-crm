@@ -511,8 +511,8 @@ export default function ClientDetailsPage() {
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-6 lg:col-span-2">
+          <section className="order-1 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Информация о клиенте
             </h4>
@@ -632,7 +632,7 @@ export default function ClientDetailsPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <section className="order-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Автомобили клиента
             </h4>
@@ -729,7 +729,7 @@ export default function ClientDetailsPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <section className="order-2 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               Добавить заказ / покупку
             </h4>
@@ -916,7 +916,7 @@ export default function ClientDetailsPage() {
             </form>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+          <section className="order-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h4 className="text-lg font-bold text-slate-900">
               История заказов
             </h4>

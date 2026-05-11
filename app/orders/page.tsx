@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import CrmShell from "@/components/CrmShell";
 import { useAsyncBrowserValue } from "@/lib/hooks";
 import {
+  activeOrderStatuses,
   formatDate,
   formatMoney,
   normalizePhone,
@@ -13,7 +14,7 @@ import {
   type Order,
   type OrderStatus,
 } from "@/lib/crm";
-import { listClients, listOrders } from "@/lib/data";
+import { listClients, listOrders, updateOrderStatusRecord } from "@/lib/data";
 
 const statuses: Array<"all" | OrderStatus> = ["all", ...orderStatuses];
 type ExportPeriod = "day" | "week" | "month" | "all";
@@ -36,7 +37,8 @@ export default function OrdersPage() {
     []
   );
   const clients = clientsState.value;
-  const orders = ordersState.value;
+  const [ordersOverride, setOrdersOverride] = useState<Order[] | null>(null);
+  const orders = ordersOverride || ordersState.value;
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
   const isLoading = !clientsState.initialized || !ordersState.initialized;
@@ -177,6 +179,36 @@ export default function OrdersPage() {
     URL.revokeObjectURL(url);
   }
 
+  async function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
+    const currentOrder = orders.find((order) => order.id === orderId);
+
+    if (!currentOrder) {
+      return;
+    }
+
+    const nextOrders = orders.map((order) =>
+      order.id === orderId
+        ? {
+            ...order,
+            status: nextStatus,
+          }
+        : order
+    );
+
+    setOrdersOverride(nextOrders);
+
+    try {
+      await updateOrderStatusRecord(currentOrder, nextStatus);
+    } catch (error) {
+      setOrdersOverride(orders);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Не удалось изменить статус заказа."
+      );
+    }
+  }
+
   if (isLoading) {
     return (
       <CrmShell title="Журнал заказов">
@@ -304,9 +336,12 @@ export default function OrdersPage() {
                 <div key={order.id} className="p-5 hover:bg-slate-50">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-5">
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="font-semibold text-slate-900 hover:underline"
+                      >
                         {order.productName}
-                      </p>
+                      </Link>
 
                       <p className="mt-1 text-sm text-slate-600">
                         Артикул: {order.article || "—"} · Бренд:{" "}
@@ -352,6 +387,32 @@ export default function OrdersPage() {
                       <p className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                         {order.status}
                       </p>
+
+                      {activeOrderStatuses.includes(order.status) && (
+                        <select
+                          value={order.status}
+                          onChange={(event) =>
+                            updateOrderStatus(
+                              order.id,
+                              event.target.value as OrderStatus
+                            )
+                          }
+                          className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-900"
+                        >
+                          {orderStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="mt-3 inline-flex justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+                      >
+                        Подробнее
+                      </Link>
                     </div>
                   </div>
                 </div>
