@@ -3,10 +3,17 @@
 import { useRef, useSyncExternalStore } from "react";
 
 function subscribeToBrowser(callback: () => void) {
+  let isActive = true;
+
   window.addEventListener("storage", callback);
-  queueMicrotask(callback);
+  queueMicrotask(() => {
+    if (isActive) {
+      callback();
+    }
+  });
 
   return () => {
+    isActive = false;
     window.removeEventListener("storage", callback);
   };
 }
