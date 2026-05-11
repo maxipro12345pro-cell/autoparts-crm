@@ -485,25 +485,16 @@ export default function ClientDetailsPage() {
 
   return (
     <CrmShell title={currentClient.name}>
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <Link href="/clients" className="text-sm text-slate-500 hover:underline">
-            ← Назад к клиентам
-          </Link>
+      <div className="mb-6">
+        <Link href="/clients" className="text-sm text-slate-500 hover:underline">
+          ← Назад к клиентам
+        </Link>
 
-          <h3 className="mt-2 text-2xl font-bold text-slate-900">
-            {currentClient.name}
-          </h3>
+        <h3 className="mt-2 text-2xl font-bold text-slate-900">
+          {currentClient.name}
+        </h3>
 
-          <p className="mt-1 text-slate-600">{currentClient.phone}</p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm sm:px-6 sm:text-right">
-          <p className="text-sm text-slate-500">Бонусный баланс</p>
-          <p className="mt-1 text-3xl font-bold text-slate-900">
-            {formatMoney(bonusBalance)}
-          </p>
-        </div>
+        <p className="mt-1 text-slate-600">{currentClient.phone}</p>
       </div>
 
       <div className="grid gap-5 md:grid-cols-4">
