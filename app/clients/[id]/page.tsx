@@ -33,6 +33,26 @@ import {
   updateClientRecord,
 } from "@/lib/data";
 
+type OrderItemDraft = {
+  id: string;
+  productName: string;
+  article: string;
+  brand: string;
+  quantity: string;
+  price: string;
+};
+
+function createOrderItemDraft(): OrderItemDraft {
+  return {
+    id: `${Date.now()}-${Math.random()}`,
+    productName: "",
+    article: "",
+    brand: "",
+    quantity: "1",
+    price: "",
+  };
+}
+
 export default function ClientDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -111,6 +131,9 @@ export default function ClientDetailsPage() {
   const [orderBrand, setOrderBrand] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("1");
   const [orderPrice, setOrderPrice] = useState("");
+  const [additionalOrderItems, setAdditionalOrderItems] = useState<
+    OrderItemDraft[]
+  >([]);
   const [orderStatus, setOrderStatus] = useState<OrderStatus>("оформлен");
   const [orderCarId, setOrderCarId] = useState("");
   const [orderComment, setOrderComment] = useState("");
@@ -179,51 +202,97 @@ export default function ClientDetailsPage() {
     await deleteCarRecord(carId);
   }
 
+  function addOrderItem() {
+    setAdditionalOrderItems((items) => [...items, createOrderItemDraft()]);
+  }
+
+  function updateOrderItem(
+    itemId: string,
+    field: keyof Omit<OrderItemDraft, "id">,
+    value: string
+  ) {
+    setAdditionalOrderItems((items) =>
+      items.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item
+      )
+    );
+  }
+
+  function removeOrderItem(itemId: string) {
+    setAdditionalOrderItems((items) =>
+      items.filter((item) => item.id !== itemId)
+    );
+  }
+
   async function handleAddOrder(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
     setErrorArea("");
 
-    if (!orderProductName.trim()) {
-      setErrorArea("order");
-      setErrorMessage("Введите название товара или запчасти.");
-      return;
-    }
-
-    const quantity = Number(orderQuantity);
-    const price = Number(orderPrice);
-
-    if (!quantity || quantity <= 0) {
-      setErrorArea("order");
-      setErrorMessage("Введите корректное количество.");
-      return;
-    }
-
-    if (!price || price <= 0) {
-      setErrorArea("order");
-      setErrorMessage("Введите корректную цену.");
-      return;
-    }
-
-    const total = quantity * price;
+    const orderItems = [
+      {
+        id: "main",
+        productName: orderProductName,
+        article: orderArticle,
+        brand: orderBrand,
+        quantity: orderQuantity,
+        price: orderPrice,
+      },
+      ...additionalOrderItems,
+    ];
     const employeeName = getEmployeeName();
+    const createdOrders: Order[] = [];
 
-    let newOrder: Order;
+    for (const [index, item] of orderItems.entries()) {
+      const positionName = `Позиция ${index + 1}`;
+      const quantity = Number(item.quantity.replace(",", "."));
+      const price = Number(item.price.replace(",", "."));
+
+      if (!item.productName.trim()) {
+        setErrorArea("order");
+        setErrorMessage(`${positionName}: введите название товара или запчасти.`);
+        return;
+      }
+
+      if (!quantity || quantity <= 0) {
+        setErrorArea("order");
+        setErrorMessage(`${positionName}: введите корректное количество.`);
+        return;
+      }
+
+      if (!price || price <= 0) {
+        setErrorArea("order");
+        setErrorMessage(`${positionName}: введите корректную цену.`);
+        return;
+      }
+    }
 
     try {
-      newOrder = await createOrderWithAutoBonus({
-        clientId,
-        carId: orderCarId || undefined,
-        productName: orderProductName.trim(),
-        article: orderArticle.trim(),
-        brand: orderBrand.trim(),
-        quantity,
-        price,
-        total,
-        status: orderStatus,
-        employeeName,
-        comment: orderComment.trim(),
-      });
+      for (const item of orderItems) {
+        const quantity = Number(item.quantity.replace(",", "."));
+        const price = Number(item.price.replace(",", "."));
+
+        const newOrder = await createOrderWithAutoBonus({
+          clientId,
+          carId: orderCarId || undefined,
+          productName: item.productName.trim(),
+          article: item.article.trim(),
+          brand: item.brand.trim(),
+          quantity,
+          price,
+          total: quantity * price,
+          status: orderStatus,
+          employeeName,
+          comment: orderComment.trim(),
+        });
+
+        createdOrders.push(newOrder);
+      }
 
       setBonusTransactionsOverride(
         await listBonusTransactions(clientId)
@@ -236,13 +305,14 @@ export default function ClientDetailsPage() {
       return;
     }
 
-    setOrdersOverride([newOrder, ...orders]);
+    setOrdersOverride([...createdOrders, ...orders]);
 
     setOrderProductName("");
     setOrderArticle("");
     setOrderBrand("");
     setOrderQuantity("1");
     setOrderPrice("");
+    setAdditionalOrderItems([]);
     setOrderStatus("оформлен");
     setOrderCarId("");
     setOrderComment("");
@@ -666,12 +736,23 @@ export default function ClientDetailsPage() {
 
             <form onSubmit={handleAddOrder} className="mt-5 space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  value={orderProductName}
-                  onChange={(event) => setOrderProductName(event.target.value)}
-                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Название товара / запчасти *"
-                />
+                <div className="flex gap-2 md:col-span-2">
+                  <input
+                    value={orderProductName}
+                    onChange={(event) => setOrderProductName(event.target.value)}
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Название товара / запчасти *"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={addOrderItem}
+                    className="h-12 w-12 shrink-0 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50"
+                    title="Добавить позицию"
+                  >
+                    +
+                  </button>
+                </div>
 
                 <input
                   value={orderArticle}
@@ -717,7 +798,7 @@ export default function ClientDetailsPage() {
                   value={orderPrice}
                   onChange={(event) => setOrderPrice(event.target.value)}
                   className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Цена"
+                  placeholder="Цена / шт."
                 />
 
                 <select
@@ -736,6 +817,87 @@ export default function ClientDetailsPage() {
                   ))}
                 </select>
               </div>
+
+              {additionalOrderItems.length > 0 && (
+                <div className="space-y-3">
+                  {additionalOrderItems.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <p className="font-medium text-slate-900">
+                          Позиция {index + 2}
+                        </p>
+
+                        <button
+                          type="button"
+                          onClick={() => removeOrderItem(item.id)}
+                          className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+                        >
+                          Удалить
+                        </button>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <input
+                          value={item.productName}
+                          onChange={(event) =>
+                            updateOrderItem(
+                              item.id,
+                              "productName",
+                              event.target.value
+                            )
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900 md:col-span-2"
+                          placeholder="Название товара / запчасти *"
+                        />
+
+                        <input
+                          value={item.article}
+                          onChange={(event) =>
+                            updateOrderItem(item.id, "article", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+                          placeholder="Артикул"
+                        />
+
+                        <input
+                          value={item.brand}
+                          onChange={(event) =>
+                            updateOrderItem(item.id, "brand", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+                          placeholder="Бренд"
+                        />
+
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(event) =>
+                            updateOrderItem(item.id, "quantity", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+                          placeholder="Количество"
+                        />
+
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={item.price}
+                          onChange={(event) =>
+                            updateOrderItem(item.id, "price", event.target.value)
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
+                          placeholder="Цена / шт."
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <textarea
                 value={orderComment}
