@@ -81,6 +81,7 @@ export type NewClientInput = Omit<Client, "id" | "createdAt">;
 export type UpdateClientInput = Omit<Client, "createdAt">;
 export type NewCarInput = Omit<ClientCar, "id" | "createdAt">;
 export type NewOrderInput = Omit<Order, "id" | "createdAt">;
+export type UpdateOrderInput = Omit<Order, "createdAt">;
 export type NewBonusTransactionInput = Omit<BonusTransaction, "id" | "createdAt">;
 
 function getDb() {
@@ -545,6 +546,58 @@ export async function createOrderWithAutoBonus(input: NewOrderInput) {
   return newOrder;
 }
 
+export async function updateOrderRecord(input: UpdateOrderInput) {
+  const db = getDb();
+
+  if (!db) {
+    const updatedOrder: Order = {
+      ...input,
+      total: input.quantity * input.price,
+      createdAt:
+        getOrders().find((order) => order.id === input.id)?.createdAt ||
+        new Date().toISOString(),
+    };
+    const nextOrders = getOrders().map((order) =>
+      order.id === input.id ? updatedOrder : order
+    );
+    writeStorageValue(storageKeys.orders, nextOrders);
+
+    if (updatedOrder.status === "отменён") {
+      await rollbackAutoBonusForCancelledOrder(updatedOrder);
+    }
+
+    return updatedOrder;
+  }
+
+  const { data, error } = await db
+    .from("orders")
+    .update({
+      car_id: input.carId || null,
+      product_name: input.productName,
+      article: input.article,
+      brand: input.brand,
+      quantity: input.quantity,
+      price: input.price,
+      total: input.quantity * input.price,
+      status: input.status,
+      employee_name: input.employeeName,
+      comment: input.comment,
+    })
+    .eq("id", input.id)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+
+  const updatedOrder = mapOrder(data as OrderRow);
+
+  if (updatedOrder.status === "отменён") {
+    await rollbackAutoBonusForCancelledOrder(updatedOrder);
+  }
+
+  return updatedOrder;
+}
+
 export async function updateOrderStatusRecord(
   order: Order,
   nextStatus: OrderStatus
@@ -565,10 +618,12 @@ export async function updateOrderStatusRecord(
     if (error) throw error;
   }
 
-  if (nextStatus !== "отменён") {
-    return;
+  if (nextStatus === "отменён") {
+    await rollbackAutoBonusForCancelledOrder(order);
   }
+}
 
+async function rollbackAutoBonusForCancelledOrder(order: Order) {
   const transactions = await listBonusTransactions();
   const autoAccrual = transactions.find(
     (transaction) =>
