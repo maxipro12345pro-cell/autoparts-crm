@@ -48,7 +48,7 @@ export default function CrmShell({ children, title }: CrmShellProps) {
   );
 
   useEffect(() => {
-    if (!employee) {
+    if (!getEmployee()) {
       router.replace("/login");
     }
   }, [employee, router]);

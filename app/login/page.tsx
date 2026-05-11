@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { storageKeys } from "@/lib/crm";
+import { getEmployee, storageKeys } from "@/lib/crm";
 
 type Employee = {
   id: string;
@@ -35,6 +35,12 @@ export default function LoginPage() {
   const [pin, setPin] = useState("");
   const [rememberLogin, setRememberLogin] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    if (getEmployee()) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
 
   function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

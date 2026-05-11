@@ -4,6 +4,7 @@ import { useRef, useSyncExternalStore } from "react";
 
 function subscribeToBrowser(callback: () => void) {
   window.addEventListener("storage", callback);
+  queueMicrotask(callback);
 
   return () => {
     window.removeEventListener("storage", callback);
