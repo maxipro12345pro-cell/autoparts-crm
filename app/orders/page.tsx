@@ -407,7 +407,7 @@ export default function OrdersPage() {
                         href={`/orders/${order.id}`}
                         className="mt-3 inline-flex justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"
                       >
-                        Подробнее
+                        Редактировать
                       </Link>
                     </div>
                   </div>

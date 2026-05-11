@@ -1,23 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import CrmShell from "@/components/CrmShell";
 import { useAsyncBrowserValue } from "@/lib/hooks";
 import {
   activeOrderStatuses,
   formatMoney,
   normalizePhone,
+  orderStatuses,
   type Client,
   type Order,
+  type OrderStatus,
 } from "@/lib/crm";
-import { listClients, listOrders } from "@/lib/data";
+import { listClients, listOrders, updateOrderStatusRecord } from "@/lib/data";
 
 export default function DashboardPage() {
   const clientsState = useAsyncBrowserValue<Client[]>(() => listClients(), []);
   const ordersState = useAsyncBrowserValue<Order[]>(() => listOrders(), []);
   const clients = clientsState.value;
-  const orders = ordersState.value;
+  const [ordersOverride, setOrdersOverride] = useState<Order[] | null>(null);
+  const orders = ordersOverride || ordersState.value;
   const isLoading = !clientsState.initialized || !ordersState.initialized;
 
   const activeOrders = useMemo(() => {
@@ -60,6 +63,31 @@ export default function DashboardPage() {
       )
       .slice(0, 5);
   }, [clients]);
+
+  async function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
+    const currentOrder = orders.find((order) => order.id === orderId);
+
+    if (!currentOrder) {
+      return;
+    }
+
+    const nextOrders = orders.map((order) =>
+      order.id === orderId ? { ...order, status: nextStatus } : order
+    );
+
+    setOrdersOverride(nextOrders);
+
+    try {
+      await updateOrderStatusRecord(currentOrder, nextStatus);
+    } catch (error) {
+      setOrdersOverride(orders);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Не удалось изменить статус заказа."
+      );
+    }
+  }
 
   if (isLoading) {
     return (
@@ -141,9 +169,12 @@ export default function DashboardPage() {
               {latestOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="rounded-xl border border-slate-200 p-4"
+                  className="rounded-xl border border-slate-200 p-4 hover:bg-slate-50"
                 >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                  <Link
+                    href={`/orders/${order.id}`}
+                    className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                  >
                     <div className="min-w-0">
                       <p className="font-medium text-slate-900">
                         {order.productName}
@@ -162,6 +193,38 @@ export default function DashboardPage() {
                     <p className="shrink-0 font-bold text-slate-900">
                       {formatMoney(order.total)}
                     </p>
+                  </Link>
+
+                  <div className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    {activeOrderStatuses.includes(order.status) ? (
+                      <select
+                        value={order.status}
+                        onChange={(event) =>
+                          updateOrderStatus(
+                            order.id,
+                            event.target.value as OrderStatus
+                          )
+                        }
+                        className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-900 sm:max-w-48"
+                      >
+                        {orderStatuses.map((status) => (
+                          <option key={status} value={status}>
+                            {status}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                        {order.status}
+                      </p>
+                    )}
+
+                    <Link
+                      href={`/orders/${order.id}`}
+                      className="inline-flex justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+                    >
+                      Редактировать
+                    </Link>
                   </div>
                 </div>
               ))}

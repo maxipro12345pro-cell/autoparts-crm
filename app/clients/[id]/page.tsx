@@ -938,9 +938,12 @@ export default function ClientDetailsPage() {
                   >
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0">
-                        <p className="font-semibold text-slate-900">
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="font-semibold text-slate-900 hover:underline"
+                        >
                           {order.productName}
-                        </p>
+                        </Link>
 
                         <p className="mt-1 text-sm text-slate-600">
                           Артикул: {order.article || "—"} · Бренд:{" "}
@@ -971,6 +974,13 @@ export default function ClientDetailsPage() {
                         <p className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                           {order.status}
                         </p>
+
+                        <Link
+                          href={`/orders/${order.id}`}
+                          className="mt-3 inline-flex justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+                        >
+                          Редактировать
+                        </Link>
                       </div>
                     </div>
                   </div>

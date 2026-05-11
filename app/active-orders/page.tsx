@@ -155,9 +155,12 @@ export default function ActiveOrdersPage() {
                 <div key={order.id} className="p-5 hover:bg-slate-50">
                   <div className="grid gap-5 lg:grid-cols-[1fr_220px_180px]">
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-900">
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="font-semibold text-slate-900 hover:underline"
+                      >
                         {order.productName}
-                      </p>
+                      </Link>
 
                       <p className="mt-1 text-sm text-slate-600">
                         Артикул: {order.article || "—"} · Бренд:{" "}
@@ -221,6 +224,13 @@ export default function ActiveOrdersPage() {
                       <p className="mt-4 text-lg font-bold text-slate-900">
                         {formatMoney(order.total)}
                       </p>
+
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="mt-4 inline-flex justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"
+                      >
+                        Редактировать
+                      </Link>
                     </div>
                   </div>
                 </div>
