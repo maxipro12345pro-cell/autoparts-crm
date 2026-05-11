@@ -49,13 +49,29 @@ export default function CrmShell({ children, title }: CrmShellProps) {
 
   useEffect(() => {
     if (!employee) {
-      router.push("/login");
+      router.replace("/login");
     }
   }, [employee, router]);
 
+  useEffect(() => {
+    function guardProtectedPage() {
+      if (!getEmployee()) {
+        router.replace("/login");
+      }
+    }
+
+    window.addEventListener("pageshow", guardProtectedPage);
+    window.addEventListener("focus", guardProtectedPage);
+
+    return () => {
+      window.removeEventListener("pageshow", guardProtectedPage);
+      window.removeEventListener("focus", guardProtectedPage);
+    };
+  }, [router]);
+
   function handleLogout() {
     localStorage.removeItem(storageKeys.employee);
-    router.push("/login");
+    router.replace("/login");
   }
 
   if (!employee) {
