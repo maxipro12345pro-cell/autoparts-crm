@@ -170,7 +170,24 @@ export function getBonusTransactions() {
 }
 
 export function getEmployee() {
-  return readStorageValue<EmployeeSession | null>(storageKeys.employee, null);
+  const savedEmployee = readStorageValue<EmployeeSession | null>(
+    storageKeys.employee,
+    null
+  );
+
+  if (savedEmployee || typeof window === "undefined") {
+    return savedEmployee;
+  }
+
+  try {
+    const sessionValue = sessionStorage.getItem(storageKeys.employee);
+
+    return sessionValue
+      ? (JSON.parse(sessionValue) as EmployeeSession)
+      : null;
+  } catch {
+    return null;
+  }
 }
 
 export function getEmployeeName() {

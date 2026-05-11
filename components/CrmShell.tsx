@@ -71,6 +71,7 @@ export default function CrmShell({ children, title }: CrmShellProps) {
 
   function handleLogout() {
     localStorage.removeItem(storageKeys.employee);
+    sessionStorage.removeItem(storageKeys.employee);
     router.replace("/login");
   }
 

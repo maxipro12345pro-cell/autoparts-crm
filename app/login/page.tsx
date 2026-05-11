@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { storageKeys } from "@/lib/crm";
 
 type Employee = {
   id: string;
@@ -32,6 +33,7 @@ export default function LoginPage() {
 
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [pin, setPin] = useState("");
+  const [rememberLogin, setRememberLogin] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
   function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -49,13 +51,18 @@ export default function LoginPage() {
       return;
     }
 
-    localStorage.setItem(
-      "crm_employee",
-      JSON.stringify({
-        id: employee.id,
-        fullName: employee.fullName,
-      })
-    );
+    const employeeSession = JSON.stringify({
+      id: employee.id,
+      fullName: employee.fullName,
+    });
+
+    if (rememberLogin) {
+      localStorage.setItem(storageKeys.employee, employeeSession);
+      sessionStorage.removeItem(storageKeys.employee);
+    } else {
+      sessionStorage.setItem(storageKeys.employee, employeeSession);
+      localStorage.removeItem(storageKeys.employee);
+    }
 
     router.replace("/dashboard");
   }
@@ -125,6 +132,21 @@ export default function LoginPage() {
               {errorMessage}
             </div>
           )}
+
+          <label className="flex items-start gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={rememberLogin}
+              onChange={(event) => setRememberLogin(event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300"
+            />
+            <span>
+              Запомнить этот браузер
+              <span className="block text-slate-500">
+                Если выключить, вход сохранится только до закрытия браузера.
+              </span>
+            </span>
+          </label>
 
           <button
             type="submit"
