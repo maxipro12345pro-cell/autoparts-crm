@@ -103,8 +103,9 @@ export default function ClientsPage() {
         ) : (
           <div className="divide-y divide-slate-200">
             {filteredClients.map((client) => (
-              <div
+              <Link
                 key={client.id}
+                href={`/clients/${encodeURIComponent(normalizePhone(client.phone))}`}
                 className="flex flex-col gap-4 p-5 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
@@ -129,13 +130,10 @@ export default function ClientsPage() {
                   )}
                 </div>
 
-                <Link
-                  href={`/clients/${encodeURIComponent(normalizePhone(client.phone))}`}
-                  className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-white"
-                >
+                <span className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
                   Открыть
-                </Link>
-              </div>
+                </span>
+              </Link>
             ))}
           </div>
         )}

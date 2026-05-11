@@ -115,35 +115,52 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-900">Быстрые действия</h2>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Быстрые действия</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Основной путь работы: найти клиента, открыть карточку и записать покупку.
+          </p>
+        </div>
 
         <div className="mt-5 grid gap-4 md:grid-cols-4">
           <Link
             href="/clients"
-            className="rounded-xl bg-slate-900 px-5 py-4 text-left font-medium text-white hover:bg-slate-800"
+            className="rounded-xl bg-slate-900 px-5 py-4 text-left text-white hover:bg-slate-800"
           >
-            Найти клиента
+            <span className="block font-medium">Найти клиента</span>
+            <span className="mt-1 block text-sm text-slate-300">
+              Проверить по телефону или имени
+            </span>
           </Link>
 
           <Link
             href="/clients/new"
-            className="rounded-xl border border-slate-300 px-5 py-4 text-left font-medium text-slate-800 hover:bg-slate-50"
+            className="rounded-xl border border-slate-300 px-5 py-4 text-left text-slate-800 hover:bg-slate-50"
           >
-            Новый клиент
+            <span className="block font-medium">Новый клиент</span>
+            <span className="mt-1 block text-sm text-slate-500">
+              Создать карточку и заказ
+            </span>
           </Link>
 
           <Link
             href="/orders"
-            className="rounded-xl border border-slate-300 px-5 py-4 text-left font-medium text-slate-800 hover:bg-slate-50"
+            className="rounded-xl border border-slate-300 px-5 py-4 text-left text-slate-800 hover:bg-slate-50"
           >
-            Все заказы
+            <span className="block font-medium">Все заказы</span>
+            <span className="mt-1 block text-sm text-slate-500">
+              История, экспорт и поиск
+            </span>
           </Link>
 
           <Link
             href="/active-orders"
-            className="rounded-xl border border-slate-300 px-5 py-4 text-left font-medium text-slate-800 hover:bg-slate-50"
+            className="rounded-xl border border-slate-300 px-5 py-4 text-left text-slate-800 hover:bg-slate-50"
           >
-            Активные заказы
+            <span className="block font-medium">Активные заказы</span>
+            <span className="mt-1 block text-sm text-slate-500">
+              Что ещё не выдано
+            </span>
           </Link>
         </div>
       </div>

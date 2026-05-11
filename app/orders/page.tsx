@@ -403,6 +403,12 @@ export default function OrdersPage() {
                         </select>
                       )}
 
+                      {!activeOrderStatuses.includes(order.status) && (
+                        <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                          {order.status}
+                        </p>
+                      )}
+
                       <Link
                         href={`/orders/${order.id}`}
                         className="mt-3 inline-flex justify-center rounded-xl border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-white"

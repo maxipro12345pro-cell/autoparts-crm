@@ -15,26 +15,32 @@ const menuItems = [
   {
     label: "Панель",
     href: "/dashboard",
+    match: ["/dashboard"],
   },
   {
     label: "Клиенты",
     href: "/clients",
+    match: ["/clients"],
   },
   {
     label: "Новый клиент",
     href: "/clients/new",
+    match: ["/clients/new"],
   },
   {
     label: "Заказы",
     href: "/orders",
+    match: ["/orders"],
   },
   {
     label: "Активные заказы",
     href: "/active-orders",
+    match: ["/active-orders"],
   },
   {
     label: "Бонусы",
     href: "/loyalty",
+    match: ["/loyalty"],
   },
 ];
 
@@ -96,7 +102,15 @@ export default function CrmShell({ children, title }: CrmShellProps) {
 
           <nav className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:block lg:space-y-2 lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden">
             {menuItems.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive =
+                item.href === "/clients"
+                  ? pathname === "/clients" ||
+                    (pathname.startsWith("/clients/") &&
+                      pathname !== "/clients/new")
+                  : item.match.some(
+                      (route) =>
+                        pathname === route || pathname.startsWith(`${route}/`)
+                    );
 
               return (
                 <Link

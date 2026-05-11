@@ -31,6 +31,7 @@ import {
   listClients,
   listOrders,
   updateClientRecord,
+  updateOrderStatusRecord,
 } from "@/lib/data";
 
 type OrderItemDraft = {
@@ -316,6 +317,31 @@ export default function ClientDetailsPage() {
     setOrderStatus("оформлен");
     setOrderCarId("");
     setOrderComment("");
+  }
+
+  async function updateOrderStatus(orderId: string, nextStatus: OrderStatus) {
+    const currentOrder = orders.find((order) => order.id === orderId);
+
+    if (!currentOrder) {
+      return;
+    }
+
+    const nextOrders = orders.map((order) =>
+      order.id === orderId ? { ...order, status: nextStatus } : order
+    );
+
+    setOrdersOverride(nextOrders);
+
+    try {
+      await updateOrderStatusRecord(currentOrder, nextStatus);
+    } catch (error) {
+      setOrdersOverride(orders);
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Не удалось изменить статус заказа."
+      );
+    }
   }
 
   async function handleAddBonusTransaction(event: React.FormEvent<HTMLFormElement>) {
@@ -971,9 +997,28 @@ export default function ClientDetailsPage() {
                           {formatMoney(order.total)}
                         </p>
 
-                        <p className="mt-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
-                          {order.status}
-                        </p>
+                        {activeOrderStatuses.includes(order.status) ? (
+                          <select
+                            value={order.status}
+                            onChange={(event) =>
+                              updateOrderStatus(
+                                order.id,
+                                event.target.value as OrderStatus
+                              )
+                            }
+                            className="mt-3 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-900"
+                          >
+                            {orderStatuses.map((status) => (
+                              <option key={status} value={status}>
+                                {status}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="mt-2 rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-600">
+                            {order.status}
+                          </p>
+                        )}
 
                         <Link
                           href={`/orders/${order.id}`}
