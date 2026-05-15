@@ -124,12 +124,12 @@ export default function DashboardPage() {
 
         <div className="mt-5 grid gap-4 md:grid-cols-4">
           <Link
-            href="/clients"
+            href="/orders/new"
             className="rounded-xl bg-slate-900 px-5 py-4 text-left text-white hover:bg-slate-800"
           >
             <span className="block font-medium">Добавить заказ</span>
             <span className="mt-1 block text-sm text-slate-300">
-              Выбрать клиента из базы
+              Выбрать клиента внутри формы
             </span>
           </Link>
 
