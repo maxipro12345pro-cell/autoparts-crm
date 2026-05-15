@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CrmShell from "@/components/CrmShell";
@@ -16,6 +15,7 @@ import {
   type OrderStatus,
 } from "@/lib/crm";
 import {
+  createClientRecord,
   createOrderWithAutoBonus,
   listCars,
   listClients,
@@ -54,7 +54,10 @@ export default function NewOrderPage() {
   const isLoading = !clientsState.initialized || !carsState.initialized;
 
   const [clientQuery, setClientQuery] = useState("");
+  const [newClientName, setNewClientName] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [createdClientOverride, setCreatedClientOverride] =
+    useState<Client | null>(null);
   const [items, setItems] = useState<OrderItemDraft[]>([
     createOrderItemDraft(),
   ]);
@@ -79,6 +82,7 @@ export default function NewOrderPage() {
   }, [clientQuery, clients]);
 
   const selectedClient =
+    createdClientOverride ||
     clients.find((client) => client.id === selectedClientId) ||
     exactPhoneClient;
 
@@ -135,10 +139,58 @@ export default function NewOrderPage() {
   }
 
   function selectClient(client: Client) {
+    setCreatedClientOverride(null);
     setSelectedClientId(client.id);
     setClientQuery(client.phone);
     setOrderCarId("");
     setErrorMessage("");
+  }
+
+  async function handleCreateClientInline() {
+    if (!clientQuery.trim()) {
+      setErrorMessage("Введите номер телефона клиента.");
+      return;
+    }
+
+    const normalizedQuery = normalizePhone(clientQuery);
+    const existingClient = clients.find(
+      (client) => normalizePhone(client.phone) === normalizedQuery
+    );
+
+    if (existingClient) {
+      selectClient(existingClient);
+      return;
+    }
+
+    setIsSaving(true);
+    setErrorMessage("");
+
+    try {
+      const newClient = await createClientRecord({
+        name: newClientName.trim() || "Новый клиент",
+        phone: clientQuery.trim(),
+        email: "",
+        birthDate: "",
+        city: "",
+        comment: "",
+        notes: "",
+        employeeName: getEmployeeName(),
+      });
+
+      setCreatedClientOverride(newClient);
+      setSelectedClientId(newClient.id);
+      setClientQuery(newClient.phone);
+      setOrderCarId("");
+      setErrorMessage("");
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Не удалось создать клиента."
+      );
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   async function handleSaveOrder(event: React.FormEvent<HTMLFormElement>) {
@@ -236,13 +288,6 @@ export default function NewOrderPage() {
               Сначала выберите клиента, затем заполните позиции заказа.
             </p>
           </div>
-
-          <Link
-            href="/clients/new"
-            className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Добавить нового клиента
-          </Link>
         </div>
 
         <form onSubmit={handleSaveOrder} className="space-y-5">
@@ -256,6 +301,7 @@ export default function NewOrderPage() {
                 onChange={(event) => {
                   setClientQuery(event.target.value);
                   setSelectedClientId("");
+                  setCreatedClientOverride(null);
                   setOrderCarId("");
                   setErrorMessage("");
                 }}
@@ -263,13 +309,24 @@ export default function NewOrderPage() {
                 placeholder="Введите телефон или имя клиента"
               />
 
-              <Link
-                href={`/clients/new?phone=${encodeURIComponent(clientQuery)}`}
+              <button
+                type="button"
+                onClick={handleCreateClientInline}
+                disabled={isSaving}
                 className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Добавить как нового
-              </Link>
+              </button>
             </div>
+
+            {!selectedClient && (
+              <input
+                value={newClientName}
+                onChange={(event) => setNewClientName(event.target.value)}
+                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                placeholder="Имя нового клиента, необязательно"
+              />
+            )}
 
             {clientSuggestions.length > 0 && !selectedClientId && (
               <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">

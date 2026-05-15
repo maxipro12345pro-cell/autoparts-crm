@@ -232,12 +232,21 @@ export default function OrdersPage() {
           </p>
         </div>
 
-        <Link
-          href="/clients"
-          className="inline-flex justify-center rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
-        >
-          Найти клиента
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            href="/orders/new"
+            className="inline-flex justify-center rounded-xl bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
+          >
+            Добавить заказ
+          </Link>
+
+          <Link
+            href="/clients"
+            className="inline-flex justify-center rounded-xl border border-slate-300 px-5 py-3 font-medium text-slate-700 hover:bg-white"
+          >
+            Найти клиента
+          </Link>
+        </div>
       </div>
 
       <div className="mb-6 grid gap-5 md:grid-cols-3">
