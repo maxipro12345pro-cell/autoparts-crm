@@ -23,7 +23,6 @@ import {
 
 type OrderItemDraft = {
   id: string;
-  productName: string;
   article: string;
   quantity: string;
   price: string;
@@ -32,7 +31,6 @@ type OrderItemDraft = {
 function createOrderItemDraft(): OrderItemDraft {
   return {
     id: `${Date.now()}-${Math.random()}`,
-    productName: "",
     article: "",
     quantity: "1",
     price: "",
@@ -41,8 +39,7 @@ function createOrderItemDraft(): OrderItemDraft {
 
 function hasOrderItemContent(item: OrderItemDraft) {
   return Boolean(
-    item.productName.trim() ||
-      item.article.trim() ||
+    item.article.trim() ||
       item.price.trim() ||
       (item.quantity.trim() && item.quantity.trim() !== "1")
   );
@@ -162,8 +159,8 @@ export default function NewOrderPage() {
       const quantity = Number(item.quantity.replace(",", "."));
       const price = Number(item.price.replace(",", "."));
 
-      if (!item.productName.trim()) {
-        setErrorMessage(`${positionName}: введите название товара.`);
+      if (!item.article.trim()) {
+        setErrorMessage(`${positionName}: введите артикул.`);
         return;
       }
 
@@ -191,7 +188,7 @@ export default function NewOrderPage() {
         const order = await createOrderWithAutoBonus({
           clientId: selectedClient.id,
           carId: orderCarId || undefined,
-          productName: item.productName.trim(),
+          productName: item.article.trim(),
           article: item.article.trim(),
           brand: "",
           quantity,
@@ -253,17 +250,26 @@ export default function NewOrderPage() {
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Клиент
             </label>
-            <input
-              value={clientQuery}
-              onChange={(event) => {
-                setClientQuery(event.target.value);
-                setSelectedClientId("");
-                setOrderCarId("");
-                setErrorMessage("");
-              }}
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-              placeholder="Введите телефон или имя клиента"
-            />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                value={clientQuery}
+                onChange={(event) => {
+                  setClientQuery(event.target.value);
+                  setSelectedClientId("");
+                  setOrderCarId("");
+                  setErrorMessage("");
+                }}
+                className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                placeholder="Введите телефон или имя клиента"
+              />
+
+              <Link
+                href={`/clients/new?phone=${encodeURIComponent(clientQuery)}`}
+                className="inline-flex justify-center rounded-xl border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Добавить как нового
+              </Link>
+            </div>
 
             {clientSuggestions.length > 0 && !selectedClientId && (
               <div className="absolute z-10 mt-2 w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
@@ -301,23 +307,15 @@ export default function NewOrderPage() {
             {items.map((item, index) => (
               <div
                 key={item.id}
-                className="grid gap-2 md:grid-cols-[minmax(160px,1fr)_130px_95px_115px_48px]"
+                className="grid gap-2 md:grid-cols-[minmax(160px,1fr)_95px_115px_48px]"
               >
-                <input
-                  value={item.productName}
-                  onChange={(event) =>
-                    updateItem(item.id, "productName", event.target.value)
-                  }
-                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder={`Позиция ${index + 1}`}
-                />
                 <input
                   value={item.article}
                   onChange={(event) =>
                     updateItem(item.id, "article", event.target.value)
                   }
                   className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Артикул"
+                  placeholder={`Артикул ${index + 1}`}
                 />
                 <input
                   type="number"

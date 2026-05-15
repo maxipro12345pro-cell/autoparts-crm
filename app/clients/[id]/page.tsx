@@ -36,7 +36,6 @@ import {
 
 type OrderItemDraft = {
   id: string;
-  productName: string;
   article: string;
   brand: string;
   quantity: string;
@@ -46,7 +45,6 @@ type OrderItemDraft = {
 function createOrderItemDraft(): OrderItemDraft {
   return {
     id: `${Date.now()}-${Math.random()}`,
-    productName: "",
     article: "",
     brand: "",
     quantity: "1",
@@ -60,8 +58,7 @@ function createInitialOrderItemDrafts() {
 
 function hasOrderItemContent(item: OrderItemDraft) {
   return Boolean(
-    item.productName.trim() ||
-      item.article.trim() ||
+    item.article.trim() ||
       item.brand.trim() ||
       item.price.trim() ||
       (item.quantity.trim() && item.quantity.trim() !== "1")
@@ -141,7 +138,6 @@ export default function ClientDetailsPage() {
   const [carVinOrPlate, setCarVinOrPlate] = useState("");
   const [carComment, setCarComment] = useState("");
 
-  const [orderProductName, setOrderProductName] = useState("");
   const [orderArticle, setOrderArticle] = useState("");
   const [orderBrand, setOrderBrand] = useState("");
   const [orderQuantity, setOrderQuantity] = useState("1");
@@ -248,7 +244,6 @@ export default function ClientDetailsPage() {
       return;
     }
 
-    if (field === "productName") setOrderProductName(value);
     if (field === "article") setOrderArticle(value);
     if (field === "brand") setOrderBrand(value);
     if (field === "quantity") setOrderQuantity(value);
@@ -269,7 +264,6 @@ export default function ClientDetailsPage() {
     const orderItems = [
       {
         id: "main",
-        productName: orderProductName,
         article: orderArticle,
         brand: orderBrand,
         quantity: orderQuantity,
@@ -291,9 +285,9 @@ export default function ClientDetailsPage() {
       const quantity = Number(item.quantity.replace(",", "."));
       const price = Number(item.price.replace(",", "."));
 
-      if (!item.productName.trim()) {
+      if (!item.article.trim()) {
         setErrorArea("order");
-        setErrorMessage(`${positionName}: введите название товара или запчасти.`);
+        setErrorMessage(`${positionName}: введите артикул.`);
         return;
       }
 
@@ -318,7 +312,7 @@ export default function ClientDetailsPage() {
         const newOrder = await createOrderWithAutoBonus({
           clientId,
           carId: orderCarId || undefined,
-          productName: item.productName.trim(),
+          productName: item.article.trim(),
           article: item.article.trim(),
           brand: item.brand.trim(),
           quantity,
@@ -345,7 +339,6 @@ export default function ClientDetailsPage() {
 
     setOrdersOverride([...createdOrders, ...orders]);
 
-    setOrderProductName("");
     setOrderArticle("");
     setOrderBrand("");
     setOrderQuantity("1");
@@ -793,7 +786,6 @@ export default function ClientDetailsPage() {
                 {[
                   {
                     id: "main",
-                    productName: orderProductName,
                     article: orderArticle,
                     brand: orderBrand,
                     quantity: orderQuantity,
@@ -807,27 +799,19 @@ export default function ClientDetailsPage() {
                   return (
                   <div
                     key={item.id}
-                    className={`${isHiddenInitialMobileRow ? "hidden md:grid" : "grid"} gap-2 md:grid-cols-[minmax(160px,1fr)_130px_95px_115px_48px]`}
+                    className={`${isHiddenInitialMobileRow ? "hidden md:grid" : "grid"} gap-2 md:grid-cols-[minmax(160px,1fr)_95px_115px_48px]`}
                   >
                     <input
-                      value={item.productName}
+                      value={item.article}
                       onChange={(event) =>
                         updateOrderRow(
                           item.id,
-                          "productName",
+                          "article",
                           event.target.value
                         )
                       }
                       className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                      placeholder={`Позиция ${index + 1}`}
-                    />
-                    <input
-                      value={item.article}
-                      onChange={(event) =>
-                        updateOrderRow(item.id, "article", event.target.value)
-                      }
-                      className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                      placeholder="Артикул"
+                      placeholder={`Артикул ${index + 1}`}
                     />
                     <input
                       type="number"
