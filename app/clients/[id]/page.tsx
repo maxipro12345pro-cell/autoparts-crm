@@ -54,6 +54,20 @@ function createOrderItemDraft(): OrderItemDraft {
   };
 }
 
+function createInitialOrderItemDrafts() {
+  return Array.from({ length: 3 }, () => createOrderItemDraft());
+}
+
+function hasOrderItemContent(item: OrderItemDraft) {
+  return Boolean(
+    item.productName.trim() ||
+      item.article.trim() ||
+      item.brand.trim() ||
+      item.price.trim() ||
+      (item.quantity.trim() && item.quantity.trim() !== "1")
+  );
+}
+
 export default function ClientDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -134,7 +148,7 @@ export default function ClientDetailsPage() {
   const [orderPrice, setOrderPrice] = useState("");
   const [additionalOrderItems, setAdditionalOrderItems] = useState<
     OrderItemDraft[]
-  >([]);
+  >(() => createInitialOrderItemDrafts());
   const [orderStatus, setOrderStatus] = useState<OrderStatus>("оформлен");
   const [orderCarId, setOrderCarId] = useState("");
   const [orderComment, setOrderComment] = useState("");
@@ -224,6 +238,23 @@ export default function ClientDetailsPage() {
     );
   }
 
+  function updateOrderRow(
+    itemId: string,
+    field: keyof Omit<OrderItemDraft, "id">,
+    value: string
+  ) {
+    if (itemId !== "main") {
+      updateOrderItem(itemId, field, value);
+      return;
+    }
+
+    if (field === "productName") setOrderProductName(value);
+    if (field === "article") setOrderArticle(value);
+    if (field === "brand") setOrderBrand(value);
+    if (field === "quantity") setOrderQuantity(value);
+    if (field === "price") setOrderPrice(value);
+  }
+
   function removeOrderItem(itemId: string) {
     setAdditionalOrderItems((items) =>
       items.filter((item) => item.id !== itemId)
@@ -245,9 +276,15 @@ export default function ClientDetailsPage() {
         price: orderPrice,
       },
       ...additionalOrderItems,
-    ];
+    ].filter(hasOrderItemContent);
     const employeeName = getEmployeeName();
     const createdOrders: Order[] = [];
+
+    if (orderItems.length === 0) {
+      setErrorArea("order");
+      setErrorMessage("Заполните хотя бы одну позицию заказа.");
+      return;
+    }
 
     for (const [index, item] of orderItems.entries()) {
       const positionName = `Позиция ${index + 1}`;
@@ -313,7 +350,7 @@ export default function ClientDetailsPage() {
     setOrderBrand("");
     setOrderQuantity("1");
     setOrderPrice("");
-    setAdditionalOrderItems([]);
+    setAdditionalOrderItems(createInitialOrderItemDrafts());
     setOrderStatus("оформлен");
     setOrderCarId("");
     setOrderComment("");
@@ -752,39 +789,89 @@ export default function ClientDetailsPage() {
             </h4>
 
             <form onSubmit={handleAddOrder} className="mt-5 space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex gap-2 md:col-span-2">
-                  <input
-                    value={orderProductName}
-                    onChange={(event) => setOrderProductName(event.target.value)}
-                    className="min-w-0 flex-1 rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                    placeholder="Название товара / запчасти *"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={addOrderItem}
-                    className="h-12 w-12 shrink-0 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50"
-                    title="Добавить позицию"
+              <div className="space-y-3">
+                {[
+                  {
+                    id: "main",
+                    productName: orderProductName,
+                    article: orderArticle,
+                    brand: orderBrand,
+                    quantity: orderQuantity,
+                    price: orderPrice,
+                  },
+                  ...additionalOrderItems,
+                ].map((item, index, rows) => (
+                  <div
+                    key={item.id}
+                    className="grid gap-2 md:grid-cols-[minmax(160px,1fr)_130px_95px_115px_48px]"
                   >
-                    +
-                  </button>
-                </div>
+                    <input
+                      value={item.productName}
+                      onChange={(event) =>
+                        updateOrderRow(
+                          item.id,
+                          "productName",
+                          event.target.value
+                        )
+                      }
+                      className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                      placeholder={`Позиция ${index + 1}`}
+                    />
+                    <input
+                      value={item.article}
+                      onChange={(event) =>
+                        updateOrderRow(item.id, "article", event.target.value)
+                      }
+                      className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                      placeholder="Артикул"
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(event) =>
+                        updateOrderRow(item.id, "quantity", event.target.value)
+                      }
+                      className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                      placeholder="Кол-во"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.price}
+                      onChange={(event) =>
+                        updateOrderRow(item.id, "price", event.target.value)
+                      }
+                      className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                      placeholder="Цена"
+                    />
+                    {index === rows.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={addOrderItem}
+                        className="h-12 w-12 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50"
+                        title="Добавить позицию"
+                      >
+                        +
+                      </button>
+                    ) : index >= 4 ? (
+                      <button
+                        type="button"
+                        onClick={() => removeOrderItem(item.id)}
+                        className="h-12 w-12 rounded-xl border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50"
+                        title="Удалить позицию"
+                      >
+                        ×
+                      </button>
+                    ) : (
+                      <div className="hidden md:block" />
+                    )}
+                  </div>
+                ))}
+              </div>
 
-                <input
-                  value={orderArticle}
-                  onChange={(event) => setOrderArticle(event.target.value)}
-                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Артикул"
-                />
-
-                <input
-                  value={orderBrand}
-                  onChange={(event) => setOrderBrand(event.target.value)}
-                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Бренд"
-                />
-
+              <div className="grid gap-4 md:grid-cols-2">
                 <select
                   value={orderStatus}
                   onChange={(event) =>
@@ -799,29 +886,10 @@ export default function ClientDetailsPage() {
                   ))}
                 </select>
 
-                <input
-                  type="number"
-                  min="1"
-                  value={orderQuantity}
-                  onChange={(event) => setOrderQuantity(event.target.value)}
-                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Количество"
-                />
-
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={orderPrice}
-                  onChange={(event) => setOrderPrice(event.target.value)}
-                  className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                  placeholder="Цена / шт."
-                />
-
                 <select
                   value={orderCarId}
                   onChange={(event) => setOrderCarId(event.target.value)}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900 md:col-span-2"
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
                 >
                   <option value="">Без привязки к автомобилю</option>
 
@@ -834,87 +902,6 @@ export default function ClientDetailsPage() {
                   ))}
                 </select>
               </div>
-
-              {additionalOrderItems.length > 0 && (
-                <div className="space-y-3">
-                  {additionalOrderItems.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                    >
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <p className="font-medium text-slate-900">
-                          Позиция {index + 2}
-                        </p>
-
-                        <button
-                          type="button"
-                          onClick={() => removeOrderItem(item.id)}
-                          className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          Удалить
-                        </button>
-                      </div>
-
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <input
-                          value={item.productName}
-                          onChange={(event) =>
-                            updateOrderItem(
-                              item.id,
-                              "productName",
-                              event.target.value
-                            )
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900 md:col-span-2"
-                          placeholder="Название товара / запчасти *"
-                        />
-
-                        <input
-                          value={item.article}
-                          onChange={(event) =>
-                            updateOrderItem(item.id, "article", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                          placeholder="Артикул"
-                        />
-
-                        <input
-                          value={item.brand}
-                          onChange={(event) =>
-                            updateOrderItem(item.id, "brand", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                          placeholder="Бренд"
-                        />
-
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(event) =>
-                            updateOrderItem(item.id, "quantity", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                          placeholder="Количество"
-                        />
-
-                        <input
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={item.price}
-                          onChange={(event) =>
-                            updateOrderItem(item.id, "price", event.target.value)
-                          }
-                          className="rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-slate-900"
-                          placeholder="Цена / шт."
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               <textarea
                 value={orderComment}

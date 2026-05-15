@@ -16,6 +16,40 @@ import {
   listClients,
 } from "@/lib/data";
 
+type OrderItemDraft = {
+  id: string;
+  productName: string;
+  article: string;
+  brand: string;
+  quantity: string;
+  price: string;
+};
+
+function createOrderItemDraft(): OrderItemDraft {
+  return {
+    id: `${Date.now()}-${Math.random()}`,
+    productName: "",
+    article: "",
+    brand: "",
+    quantity: "1",
+    price: "",
+  };
+}
+
+function createInitialOrderItemDrafts() {
+  return Array.from({ length: 3 }, () => createOrderItemDraft());
+}
+
+function hasOrderItemContent(item: OrderItemDraft) {
+  return Boolean(
+    item.productName.trim() ||
+      item.article.trim() ||
+      item.brand.trim() ||
+      item.price.trim() ||
+      (item.quantity.trim() && item.quantity.trim() !== "1")
+  );
+}
+
 export default function NewClientPage() {
   const router = useRouter();
 
@@ -33,15 +67,67 @@ export default function NewClientPage() {
   const [orderStatus, setOrderStatus] = useState<OrderStatus>("оформлен");
   const [orderQuantity, setOrderQuantity] = useState("1");
   const [orderPrice, setOrderPrice] = useState("");
+  const [additionalOrderItems, setAdditionalOrderItems] = useState<
+    OrderItemDraft[]
+  >(() => createInitialOrderItemDrafts());
   const [orderComment, setOrderComment] = useState("");
 
   const [errorMessage, setErrorMessage] = useState("");
-  const orderQuantityNumber = Number(orderQuantity.replace(",", "."));
-  const orderPriceNumber = Number(orderPrice.replace(",", "."));
-  const orderTotal =
-    Number.isFinite(orderQuantityNumber) && Number.isFinite(orderPriceNumber)
-      ? orderQuantityNumber * orderPriceNumber
-      : 0;
+  const orderItems = [
+    {
+      id: "main",
+      productName: orderProductName,
+      article: orderArticle,
+      brand: orderBrand,
+      quantity: orderQuantity,
+      price: orderPrice,
+    },
+    ...additionalOrderItems,
+  ];
+  const filledOrderItems = orderItems.filter(hasOrderItemContent);
+  const orderTotal = filledOrderItems.reduce((sum, item) => {
+    const quantity = Number(item.quantity.replace(",", "."));
+    const price = Number(item.price.replace(",", "."));
+
+    if (!quantity || !price || quantity <= 0 || price <= 0) {
+      return sum;
+    }
+
+    return sum + quantity * price;
+  }, 0);
+
+  function addOrderItem() {
+    setAdditionalOrderItems((items) => [...items, createOrderItemDraft()]);
+  }
+
+  function removeOrderItem(itemId: string) {
+    setAdditionalOrderItems((items) =>
+      items.filter((item) => item.id !== itemId)
+    );
+  }
+
+  function updateOrderItem(
+    itemId: string,
+    field: keyof Omit<OrderItemDraft, "id">,
+    value: string
+  ) {
+    if (itemId === "main") {
+      if (field === "productName") setOrderProductName(value);
+      if (field === "article") setOrderArticle(value);
+      if (field === "brand") setOrderBrand(value);
+      if (field === "quantity") setOrderQuantity(value);
+      if (field === "price") setOrderPrice(value);
+      setErrorMessage("");
+      return;
+    }
+
+    setAdditionalOrderItems((items) =>
+      items.map((item) =>
+        item.id === itemId ? { ...item, [field]: value } : item
+      )
+    );
+    setErrorMessage("");
+  }
 
   async function handleCreateClient(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,29 +159,27 @@ export default function NewClientPage() {
         return;
       }
 
-      const shouldCreateOrder =
-        orderProductName.trim() ||
-        orderArticle.trim() ||
-        orderBrand.trim() ||
-        orderPrice.trim() ||
-        orderComment.trim();
+      const orderItemsToCreate = orderItems.filter(hasOrderItemContent);
 
-      if (shouldCreateOrder && !orderProductName.trim()) {
-        setErrorMessage("Введите название товара или запчасти.");
-        return;
-      }
+      for (const [index, item] of orderItemsToCreate.entries()) {
+        const positionName = `Позиция ${index + 1}`;
+        const quantity = Number(item.quantity.replace(",", "."));
+        const price = Number(item.price.replace(",", "."));
 
-      if (
-        shouldCreateOrder &&
-        (!orderQuantityNumber || orderQuantityNumber <= 0)
-      ) {
-        setErrorMessage("Введите корректное количество.");
-        return;
-      }
+        if (!item.productName.trim()) {
+          setErrorMessage(`${positionName}: введите название товара или запчасти.`);
+          return;
+        }
 
-      if (shouldCreateOrder && (!orderPriceNumber || orderPriceNumber <= 0)) {
-        setErrorMessage("Введите корректную цену.");
-        return;
+        if (!quantity || quantity <= 0) {
+          setErrorMessage(`${positionName}: введите корректное количество.`);
+          return;
+        }
+
+        if (!price || price <= 0) {
+          setErrorMessage(`${positionName}: введите корректную цену.`);
+          return;
+        }
       }
 
       const newClient = await createClientRecord({
@@ -109,15 +193,18 @@ export default function NewClientPage() {
         employeeName: getEmployeeName(),
       });
 
-      if (shouldCreateOrder) {
+      for (const item of orderItemsToCreate) {
+        const quantity = Number(item.quantity.replace(",", "."));
+        const price = Number(item.price.replace(",", "."));
+
         await createOrderWithAutoBonus({
           clientId: newClient.id,
-          productName: orderProductName.trim(),
-          article: orderArticle.trim(),
-          brand: orderBrand.trim(),
-          quantity: orderQuantityNumber,
-          price: orderPriceNumber,
-          total: orderTotal,
+          productName: item.productName.trim(),
+          article: item.article.trim(),
+          brand: item.brand.trim(),
+          quantity,
+          price,
+          total: quantity * price,
           status: orderStatus,
           employeeName: getEmployeeName(),
           comment: orderComment.trim(),
@@ -252,31 +339,82 @@ export default function NewClientPage() {
               Блок можно оставить пустым и создать только карточку клиента.
             </p>
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <input
-                value={orderProductName}
-                onChange={(event) => {
-                  setOrderProductName(event.target.value);
-                  setErrorMessage("");
-                }}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                placeholder="Название товара / запчасти *"
-              />
+            <div className="mt-5 space-y-3">
+              {orderItems.map((item, index, rows) => (
+                <div
+                  key={item.id}
+                  className="grid gap-2 md:grid-cols-[minmax(160px,1fr)_130px_95px_115px_48px]"
+                >
+                  <input
+                    value={item.productName}
+                    onChange={(event) =>
+                      updateOrderItem(
+                        item.id,
+                        "productName",
+                        event.target.value
+                      )
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder={`Позиция ${index + 1}`}
+                  />
+                  <input
+                    value={item.article}
+                    onChange={(event) =>
+                      updateOrderItem(item.id, "article", event.target.value)
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Артикул"
+                  />
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    value={item.quantity}
+                    onChange={(event) =>
+                      updateOrderItem(item.id, "quantity", event.target.value)
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Кол-во"
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    inputMode="decimal"
+                    value={item.price}
+                    onChange={(event) =>
+                      updateOrderItem(item.id, "price", event.target.value)
+                    }
+                    className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
+                    placeholder="Цена"
+                  />
+                  {index === rows.length - 1 ? (
+                    <button
+                      type="button"
+                      onClick={addOrderItem}
+                      className="h-12 w-12 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50"
+                      title="Добавить позицию"
+                    >
+                      +
+                    </button>
+                  ) : index >= 4 ? (
+                    <button
+                      type="button"
+                      onClick={() => removeOrderItem(item.id)}
+                      className="h-12 w-12 rounded-xl border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50"
+                      title="Удалить позицию"
+                    >
+                      ×
+                    </button>
+                  ) : (
+                    <div className="hidden md:block" />
+                  )}
+                </div>
+              ))}
+            </div>
 
-              <input
-                value={orderArticle}
-                onChange={(event) => setOrderArticle(event.target.value)}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                placeholder="Артикул"
-              />
-
-              <input
-                value={orderBrand}
-                onChange={(event) => setOrderBrand(event.target.value)}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                placeholder="Бренд"
-              />
-
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
               <select
                 value={orderStatus}
                 onChange={(event) =>
@@ -291,33 +429,6 @@ export default function NewClientPage() {
                 ))}
               </select>
 
-              <input
-                type="number"
-                min="1"
-                step="1"
-                inputMode="numeric"
-                value={orderQuantity}
-                onChange={(event) => {
-                  setOrderQuantity(event.target.value);
-                  setErrorMessage("");
-                }}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                placeholder="Количество"
-              />
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                inputMode="decimal"
-                value={orderPrice}
-                onChange={(event) => {
-                  setOrderPrice(event.target.value);
-                  setErrorMessage("");
-                }}
-                className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
-                placeholder="Цена"
-              />
             </div>
 
             <textarea
