@@ -118,7 +118,7 @@ export default function DashboardPage() {
         <div>
           <h2 className="text-xl font-bold text-slate-900">Быстрые действия</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Основной путь работы: найти клиента, открыть карточку и записать покупку.
+            Основной путь работы: добавить заказ, выбрать клиента или создать нового.
           </p>
         </div>
 
@@ -127,9 +127,9 @@ export default function DashboardPage() {
             href="/clients"
             className="rounded-xl bg-slate-900 px-5 py-4 text-left text-white hover:bg-slate-800"
           >
-            <span className="block font-medium">Найти клиента</span>
+            <span className="block font-medium">Добавить заказ</span>
             <span className="mt-1 block text-sm text-slate-300">
-              Проверить по телефону или имени
+              Выбрать клиента из базы
             </span>
           </Link>
 
@@ -137,9 +137,9 @@ export default function DashboardPage() {
             href="/clients/new"
             className="rounded-xl border border-slate-300 px-5 py-4 text-left text-slate-800 hover:bg-slate-50"
           >
-            <span className="block font-medium">Новый клиент</span>
+            <span className="block font-medium">Добавить нового</span>
             <span className="mt-1 block text-sm text-slate-500">
-              Создать карточку и заказ
+              Клиент ещё не был в CRM
             </span>
           </Link>
 

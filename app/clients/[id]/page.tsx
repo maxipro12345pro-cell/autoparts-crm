@@ -800,10 +800,14 @@ export default function ClientDetailsPage() {
                     price: orderPrice,
                   },
                   ...additionalOrderItems,
-                ].map((item, index, rows) => (
+                ].map((item, index, rows) => {
+                  const isHiddenInitialMobileRow =
+                    index > 0 && index < 4 && !hasOrderItemContent(item);
+
+                  return (
                   <div
                     key={item.id}
-                    className="grid gap-2 md:grid-cols-[minmax(160px,1fr)_130px_95px_115px_48px]"
+                    className={`${isHiddenInitialMobileRow ? "hidden md:grid" : "grid"} gap-2 md:grid-cols-[minmax(160px,1fr)_130px_95px_115px_48px]`}
                   >
                     <input
                       value={item.productName}
@@ -846,11 +850,20 @@ export default function ClientDetailsPage() {
                       className="rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-slate-900"
                       placeholder="Цена"
                     />
-                    {index === rows.length - 1 ? (
+                    {index === 0 ? (
                       <button
                         type="button"
                         onClick={addOrderItem}
-                        className="h-12 w-12 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50"
+                        className="h-12 w-12 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50 md:hidden"
+                        title="Добавить позицию"
+                      >
+                        +
+                      </button>
+                    ) : index === rows.length - 1 ? (
+                      <button
+                        type="button"
+                        onClick={addOrderItem}
+                        className="hidden h-12 w-12 rounded-xl border border-slate-300 text-xl font-semibold text-slate-700 hover:bg-slate-50 md:block"
                         title="Добавить позицию"
                       >
                         +
@@ -868,7 +881,8 @@ export default function ClientDetailsPage() {
                       <div className="hidden md:block" />
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
