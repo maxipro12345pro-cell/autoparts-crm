@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import CrmShell from "@/components/CrmShell";
 import {
   formatMoney,
@@ -49,10 +49,15 @@ function hasOrderItemContent(item: OrderItemDraft) {
 
 export default function NewClientPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState(searchParams.get("phone") || "");
+  const [phone, setPhone] = useState(() => {
+    if (typeof window === "undefined") {
+      return "";
+    }
+
+    return new URLSearchParams(window.location.search).get("phone") || "";
+  });
 
   const [email, setEmail] = useState("");
   const [birthDate, setBirthDate] = useState("");
